@@ -1,14 +1,11 @@
 import {resolveMediaSource} from './media-utils.js';
 
-const DATA_URL = './data/site-data.json';
-const FORMS_ENRICHED_URL = './data/forms.enriched.json';
+const DATA_URL = './data/forms.json';
 const LOCATIONS_URL = './data/locations.json';
 const PAGE_PARAMS = new URLSearchParams(window.location.search);
 const IS_PREVIEW_SHELL = PAGE_PARAMS.get('preview-shell') === '1';
-const IDLE_TIMEOUT_MS = 180;
-const MEDIA_LOAD_TIMEOUT_MS = 4500;
-const PREVIEW_FAILURE_TTL_MS = 10000;
-const GDRIVE_TIMEOUT_MS = 12000;
+const MEDIA_LOAD_TIMEOUT_MS = 8000;
+const GDRIVE_TIMEOUT_MS = 15000;
 const STORAGE = {
   language: 'opendental-directory-language',
   activeForm: 'opendental-directory-active-form',
@@ -31,20 +28,6 @@ const LANGUAGE_SHORT = {
   ko: 'KR',
 };
 
-const PREVIEW_BLOCK_REMOVAL_PATTERNS = [
-  /Patient Name/i,
-  /Date of Birth/i,
-  /Chart #/i,
-  /Treating Dentist/i,
-  /Tooth \/ Area/i,
-  /Date of Procedure/i,
-  /Patient Signature/i,
-  /Guardian\/Representative/i,
-  /Dentist Signature/i,
-  /Confirmation of Explanation/i,
-  /이 양식은 Health Professions/i,
-];
-
 const I18N = {
   en: {
     sidebarEyebrow: 'Forms',
@@ -59,6 +42,7 @@ const I18N = {
     visibleLabel: 'Visible',
     formListTitle: 'Active forms',
     locationLabel: 'Location',
+    locationLoadFailed: 'Location data unavailable',
     languageLabel: 'Language',
     themeLabel: 'Theme',
     themeLight: 'Light',
@@ -124,6 +108,7 @@ const I18N = {
     visibleLabel: '표시',
     formListTitle: '활성 양식',
     locationLabel: '지점',
+    locationLoadFailed: '지점 데이터를 불러올 수 없습니다',
     languageLabel: '언어',
     themeLabel: '테마',
     themeLight: '라이트',
@@ -207,10 +192,6 @@ const el = {
 };
 
 const collatorCache = new Map();
-const previewSourceCache = new Map();
-const previewFailureCache = new Map();
-const previewHtmlCache = new Map();
-const previewTemplateCache = new Map();
 const sortedFormsCache = new Map();
 const mediaRuntime = {
   youtube: createMediaRuntime(),
@@ -218,8 +199,6 @@ const mediaRuntime = {
 };
 let tabSliderFrame = 0;
 let detailRenderToken = 0;
-let activePreviewController = null;
-let activePreviewKey = '';
 let gdriveTimeoutId = 0;
 let gdriveTimeoutToken = 0;
 
@@ -318,14 +297,6 @@ function bindEvents() {
       return;
     }
 
-    const reloadButton =
-      event.target instanceof Element ? event.target.closest('[data-action="reload-gdrive-preview"]') : null;
-    if (reloadButton instanceof HTMLElement) {
-      event.preventDefault();
-      reloadGdriveFrame();
-      return;
-    }
-
     const signLink = event.target instanceof Element ? event.target.closest('#documentSignLink') : null;
     if (signLink instanceof HTMLElement && signLink.classList.contains('is-disabled')) {
       event.preventDefault();
@@ -393,22 +364,12 @@ function pauseYouTubeIfLeaving(nextTab = '') {
   }
 }
 
-function cancelActivePreviewLoad({exceptKey = ''} = {}) {
-  if (activePreviewController && activePreviewKey !== exceptKey) {
-    activePreviewController.abort();
-    activePreviewController = null;
-    activePreviewKey = '';
-  }
-}
+function cancelActivePreviewLoad() {}
 
 async function loadSiteData() {
   state.emptyMode = 'default';
   state.forms = [];
   sortedFormsCache.clear();
-  previewSourceCache.clear();
-  previewFailureCache.clear();
-  previewHtmlCache.clear();
-  previewTemplateCache.clear();
   cancelActivePreviewLoad();
   clearAllMediaRuntime();
 
@@ -425,7 +386,7 @@ async function loadSiteData() {
 
     const payload = await response.json();
     const normalizedForms = normalizeForms(payload);
-    const forms = (await hydrateFormsWithEnrichedData(normalizedForms)).filter(hasUsableFormData);
+    const forms = normalizedForms.filter(hasUsableFormData);
 
     if (forms.length) {
       state.forms = forms;
@@ -480,6 +441,7 @@ async function loadLocationsData() {
     populateLocationSelect();
   } catch (error) {
     console.error('Failed to load locations data.', error);
+    state.locationLoadFailed = true;
   }
 }
 
@@ -492,6 +454,17 @@ function populateLocationSelect() {
   if (!el.locationSelect) return;
 
   el.locationSelect.innerHTML = '';
+
+  if (state.locationLoadFailed) {
+    const option = document.createElement('option');
+    option.value = '';
+    option.textContent = text('locationLoadFailed');
+    option.disabled = true;
+    option.selected = true;
+    el.locationSelect.appendChild(option);
+    return;
+  }
+
   for (const loc of state.locations) {
     const option = document.createElement('option');
     option.value = loc.slug;
@@ -584,61 +557,6 @@ function normalizeVideos(videos) {
     .filter(Boolean);
 }
 
-async function hydrateFormsWithEnrichedData(forms) {
-  if (!Array.isArray(forms) || !forms.length) return [];
-
-  const enrichedById = await loadEnrichedFormsById();
-  if (!enrichedById.size) return forms;
-
-  return forms.map(form => {
-    const enriched = enrichedById.get(form.id);
-    if (!enriched) return form;
-
-    const mergedTranslations = {...(form.translations || {})};
-    if (enriched.translations && typeof enriched.translations === 'object') {
-      Object.entries(enriched.translations).forEach(([language, values]) => {
-        if (!values || typeof values !== 'object') return;
-        mergedTranslations[language] = {
-          ...(mergedTranslations[language] || {}),
-          ...values,
-        };
-      });
-    }
-
-    return {
-      ...form,
-      translations: mergedTranslations,
-      googleViewerFileId: enriched.googleViewerFileId ?? form.googleViewerFileId,
-      videos: Array.isArray(enriched.videos) ? normalizeVideos(enriched.videos) : form.videos,
-    };
-  });
-}
-
-async function loadEnrichedFormsById() {
-  try {
-    const response = await fetch(FORMS_ENRICHED_URL);
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const payload = await response.json();
-    const forms = Array.isArray(payload)
-      ? payload
-      : Array.isArray(payload?.forms)
-        ? payload.forms
-        : [];
-
-    return new Map(
-      forms
-        .filter(form => form && typeof form === 'object' && form.id)
-        .map(form => [form.id, form]),
-    );
-  } catch (error) {
-    console.error('Failed to load enriched form data.', error);
-    return new Map();
-  }
-}
-
 function normalizePlatform(platform, url) {
   const value = String(platform || '').toLowerCase();
   if (value.includes('drive') || /drive\.google\.com/i.test(url || '')) return 'drive';
@@ -674,7 +592,7 @@ function getFormUrlVariant(url, formFactor = '') {
 }
 
 function getEmbeddedFormUrl(url) {
-  return getFormUrlVariant(url, 'phone');
+  return getFormUrlVariant(url, '');
 }
 
 function setActionButtonState(button, href) {
@@ -765,7 +683,7 @@ function renderMain() {
     applyEmptyStateCopy(getMainEmptyCopy());
     el.emptyState.classList.remove('is-hidden');
     el.detailShell.classList.add('is-hidden');
-    document.title = 'OpenDental';
+    document.title = 'Smile Well';
     return;
   }
 
@@ -775,7 +693,7 @@ function renderMain() {
   const name = displayName(form, state.language);
   setActionButtonState(el.signFormTabButton, getEmbeddedFormUrl(getFormSignUrl(form)));
 
-  document.title = `${name} - OpenDental`;
+  document.title = `${name} - Smile Well`;
 }
 
 function renderTabs() {
@@ -919,13 +837,10 @@ function renderFormDetail(form, renderToken, {forceMount = false} = {}) {
     gdriveTimeoutId = 0;
   }
 
-  const fileId = resolveViewerFileId(form, state.language);
-  host.innerHTML = fileId ? renderGdriveViewerMarkup(form, fileId) : renderPreviewUnavailableMarkup();
+  const pdfPath = resolvePdfPath(form, state.language);
+  host.innerHTML = '';
   host.scrollTop = 0;
-
-  if (fileId) {
-    startGdriveTimeout();
-  }
+  renderPdfPreview(pdfPath, 'docPreviewHost');
 }
 
 function renderFormPane(form) {
@@ -960,10 +875,7 @@ function renderFormPane(form) {
               class="action-button action-button--sign action-button--sign-inline${
                 signHref ? '' : ' is-disabled'
               }"
-              href="${esc(signHref || '#')}"
-              target="_blank"
-              rel="noreferrer"
-              ${signHref ? '' : 'aria-disabled="true"'}
+              ${signHref ? `href="${esc(signHref)}" target="_blank" rel="noopener noreferrer"` : 'aria-disabled="true"'}
             >
               <span class="action-button__label">${esc(text('signDocumentAction'))}</span>
             </a>
@@ -974,22 +886,160 @@ function renderFormPane(form) {
   `;
 }
 
-function renderPreviewLoadingMarkup() {
-  return `<p class="muted-copy">${esc(text('loadingPreview'))}</p>`;
-}
-
 function resolveViewerFileId(form, language) {
   const raw = form?.googleViewerFileId;
   if (!raw) return '';
   if (typeof raw === 'string') return raw.trim();
   if (typeof raw !== 'object') return '';
 
-  const isKo = language === 'ko' || language === 'kr';
+  const isKo = language === 'ko';
   if (isKo) {
     return firstString(raw.ko, raw.kr, raw.en);
   }
 
   return firstString(raw.en, raw.ko, raw.kr);
+}
+
+function resolvePdfPath(form, language) {
+  const raw = form?.pdfPath;
+  if (!raw) return '';
+  if (typeof raw === 'string') return raw.trim();
+  if (typeof raw !== 'object') return '';
+
+  const isKo = language === 'ko';
+  if (isKo) {
+    return firstString(raw.ko, raw.en);
+  }
+
+  return firstString(raw.en, raw.ko);
+}
+
+async function renderPdfPreview(pdfPath, containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  if (!pdfPath) {
+    container.innerHTML = renderPreviewUnavailableMarkup();
+    return;
+  }
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'pdf-viewer';
+
+  const toolbar = document.createElement('div');
+  toolbar.className = 'pdf-toolbar';
+
+  const pageCounter = document.createElement('span');
+  pageCounter.className = 'pdf-toolbar__counter';
+  pageCounter.textContent = 'Page 1 / 1';
+
+  const navGroup = document.createElement('div');
+  navGroup.className = 'pdf-toolbar__group';
+
+  const prevBtn = document.createElement('button');
+  prevBtn.type = 'button';
+  prevBtn.className = 'pdf-toolbar__btn';
+  prevBtn.textContent = '\u2190';
+  prevBtn.setAttribute('aria-label', 'Previous page');
+
+  const nextBtn = document.createElement('button');
+  nextBtn.type = 'button';
+  nextBtn.className = 'pdf-toolbar__btn';
+  nextBtn.textContent = '\u2192';
+  nextBtn.setAttribute('aria-label', 'Next page');
+
+  navGroup.appendChild(prevBtn);
+  navGroup.appendChild(nextBtn);
+
+  const zoomGroup = document.createElement('div');
+  zoomGroup.className = 'pdf-toolbar__group';
+
+  const zoomOutBtn = document.createElement('button');
+  zoomOutBtn.type = 'button';
+  zoomOutBtn.className = 'pdf-toolbar__btn';
+  zoomOutBtn.textContent = '\u2212';
+  zoomOutBtn.setAttribute('aria-label', 'Zoom out');
+
+  const zoomInBtn = document.createElement('button');
+  zoomInBtn.type = 'button';
+  zoomInBtn.className = 'pdf-toolbar__btn';
+  zoomInBtn.textContent = '+';
+  zoomInBtn.setAttribute('aria-label', 'Zoom in');
+
+  zoomGroup.appendChild(zoomOutBtn);
+  zoomGroup.appendChild(zoomInBtn);
+
+  toolbar.appendChild(navGroup);
+  toolbar.appendChild(pageCounter);
+  toolbar.appendChild(zoomGroup);
+
+  const canvas = document.createElement('canvas');
+  canvas.className = 'pdf-viewer__canvas';
+
+  wrapper.appendChild(toolbar);
+  wrapper.appendChild(canvas);
+  container.appendChild(wrapper);
+
+  let currentPage = 1;
+  let totalPages = 1;
+  let currentScale = 1.5;
+  let pdfDoc = null;
+
+  async function renderPage(pageNum) {
+    if (!pdfDoc) return;
+    const page = await pdfDoc.getPage(pageNum);
+    const viewport = page.getViewport({scale: currentScale});
+
+    canvas.height = viewport.height;
+    canvas.width = viewport.width;
+
+    const context = canvas.getContext('2d');
+    await page.render({canvasContext: context, viewport}).promise;
+
+    pageCounter.textContent = `Page ${pageNum} / ${totalPages}`;
+    prevBtn.disabled = pageNum <= 1;
+    nextBtn.disabled = pageNum >= totalPages;
+  }
+
+  prevBtn.addEventListener('click', () => {
+    if (currentPage > 1) {
+      currentPage--;
+      renderPage(currentPage);
+    }
+  });
+
+  nextBtn.addEventListener('click', () => {
+    if (currentPage < totalPages) {
+      currentPage++;
+      renderPage(currentPage);
+    }
+  });
+
+  zoomInBtn.addEventListener('click', () => {
+    currentScale = Math.min(currentScale + 0.25, 4);
+    renderPage(currentPage);
+  });
+
+  zoomOutBtn.addEventListener('click', () => {
+    currentScale = Math.max(currentScale - 0.25, 0.5);
+    renderPage(currentPage);
+  });
+
+  try {
+    const lib = window.pdfjsLib;
+    if (!lib) throw new Error('PDF.js not loaded');
+    pdfDoc = await lib.getDocument(pdfPath).promise;
+    totalPages = pdfDoc.numPages;
+    await renderPage(currentPage);
+  } catch {
+    container.innerHTML = '';
+    const errorEl = document.createElement('div');
+    errorEl.className = 'pdf-viewer__error';
+    errorEl.textContent = 'Preview unavailable. Please ask staff for assistance.';
+    container.appendChild(errorEl);
+  }
 }
 
 function renderGdriveViewerMarkup(form, fileId) {
@@ -998,7 +1048,8 @@ function renderGdriveViewerMarkup(form, fileId) {
     <div class="gdrive-viewer-shell">
       <iframe
         id="gdrive-preview-frame"
-        src="https://docs.google.com/document/d/${esc(fileId)}/preview?rm=minimal"
+        src="https://drive.google.com/file/d/${esc(fileId)}/preview"
+        sandbox="allow-scripts allow-same-origin allow-popups"
         frameborder="0"
         allowfullscreen
         title="${esc(title)}"
@@ -1058,92 +1109,6 @@ function reloadGdriveFrame() {
   startGdriveTimeout();
 }
 
-function renderPreviewEmptyMarkup() {
-  return `
-    <div class="empty-slot">
-      <div><strong>${esc(text('noDocumentPreview'))}</strong></div>
-    </div>
-  `;
-}
-
-function renderPreviewErrorMarkup() {
-  return `
-    <div class="empty-slot">
-      <div>
-        <strong>${esc(text('previewLoadFailedTitle'))}</strong>
-        <p>${esc(text('previewLoadFailedBody'))}</p>
-      </div>
-    </div>
-  `;
-}
-
-function schedulePreviewRender(form, language, renderToken) {
-  const commitPreview = async () => {
-    let preview = '';
-    let previewFailed = false;
-    const previewKey = getPreviewCacheKey(form.id, language);
-    const needsPreviewLoad = !previewHtmlCache.has(previewKey);
-    const controller =
-      needsPreviewLoad && typeof AbortController === 'function' ? new AbortController() : null;
-
-    if (controller) {
-      cancelActivePreviewLoad({exceptKey: previewKey});
-      activePreviewController = controller;
-      activePreviewKey = previewKey;
-    }
-
-    try {
-      preview = await getResolvedPreviewHtml(form, language, {signal: controller?.signal});
-    } catch (error) {
-      if (error?.name === 'AbortError') {
-        return;
-      }
-      previewFailed = true;
-      console.error(`Failed to load preview for "${form.id}" (${language}).`, error);
-    } finally {
-      if (controller && activePreviewController === controller) {
-        activePreviewController = null;
-        activePreviewKey = '';
-      }
-    }
-
-    if (
-      renderToken !== detailRenderToken ||
-      state.activeTab !== 'form' ||
-      state.activeFormId !== form.id ||
-      state.language !== language
-    ) {
-      return;
-    }
-
-    const host = document.querySelector('#docPreviewHost');
-    if (!(host instanceof HTMLElement)) return;
-    host.scrollTop = 0;
-    const markup = previewFailed
-      ? renderPreviewErrorMarkup()
-      : preview || renderPreviewEmptyMarkup();
-    setDocPreviewMarkup(
-      host,
-      markup,
-      !previewFailed && preview ? getPreviewCacheKey(form.id, language) : '',
-    );
-  };
-
-  if (typeof window.requestAnimationFrame === 'function') {
-    window.requestAnimationFrame(() => {
-      void commitPreview();
-    });
-    return;
-  }
-
-  void commitPreview();
-}
-
-function getCachedPreviewHtml(form, language) {
-  if (!form) return '';
-  return previewHtmlCache.get(getPreviewCacheKey(form.id, language)) || '';
-}
-
 function updateFormPaneActions(form, scope = document) {
   const signHref = getEmbeddedFormUrl(getFormSignUrl(form));
   const signLink = scope.querySelector('#documentSignLink');
@@ -1154,41 +1119,6 @@ function updateFormPaneActions(form, scope = document) {
 function getDocPreviewHost(scope = document) {
   const host = scope.querySelector('#docPreviewHost');
   return host instanceof HTMLElement ? host : null;
-}
-
-function getPreviewCacheKey(formId, language) {
-  return `${formId}:${language}`;
-}
-
-function setDocPreviewMarkup(host, markup, cacheKey = '') {
-  if (!(host instanceof HTMLElement)) return;
-
-  if (!cacheKey || !markup) {
-    host.innerHTML = markup;
-    return;
-  }
-
-  let template = previewTemplateCache.get(cacheKey);
-  if (!template) {
-    template = document.createElement('template');
-    template.innerHTML = markup;
-    previewTemplateCache.set(cacheKey, template);
-  }
-
-  host.replaceChildren(template.content.cloneNode(true));
-}
-
-function deferNonCriticalWork(task) {
-  if (typeof window.requestIdleCallback === 'function') {
-    window.requestIdleCallback(() => {
-      void task();
-    }, {timeout: IDLE_TIMEOUT_MS});
-    return;
-  }
-
-  window.setTimeout(() => {
-    void task();
-  }, 0);
 }
 
 function scheduleTabSliderSync() {
@@ -1230,7 +1160,8 @@ function renderMediaPane(form, platform) {
               class="is-hidden"
               loading="lazy"
               referrerpolicy="strict-origin-when-cross-origin"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              sandbox="allow-scripts allow-same-origin allow-popups allow-presentation"
+              allow="autoplay; encrypted-media"
               allowfullscreen
             ></iframe>
             <div data-role="mediaFallback" class="media-fallback is-hidden"></div>
@@ -1267,7 +1198,7 @@ function renderMediaFallbackMarkup(title, body, url = '', actionLabel = text('op
       </div>
         ${
           url
-          ? `<a class="action-button action-button--ghost" href="${esc(url)}" target="_blank" rel="noreferrer">${esc(actionLabel)}</a>`
+          ? `<a class="action-button action-button--ghost" href="${esc(url)}" target="_blank" rel="noopener noreferrer">${esc(actionLabel)}</a>`
           : ''
         }
       </div>
@@ -1294,7 +1225,7 @@ function renderMediaFooter(frameFooter, sourceUrl) {
 
   frameFooter.classList.remove('is-hidden');
   frameFooter.innerHTML = `
-    <a class="muted-link" href="${esc(sourceUrl)}" target="_blank" rel="noreferrer">${esc(text('openVideo'))}</a>
+    <a class="muted-link" href="${esc(sourceUrl)}" target="_blank" rel="noopener noreferrer">${esc(text('openVideo'))}</a>
   `;
 }
 
@@ -1308,7 +1239,7 @@ function renderMediaFooterWithAdvisory(frameFooter, sourceUrl, advisoryText) {
   frameFooter.classList.remove('is-hidden');
   frameFooter.innerHTML = `
     <div style="margin-bottom: 8px; font-size: 12px; opacity: 0.8;">${esc(advisoryText)}</div>
-    <a class="muted-link" href="${esc(sourceUrl)}" target="_blank" rel="noreferrer">${esc(text('openVideo'))}</a>
+    <a class="muted-link" href="${esc(sourceUrl)}" target="_blank" rel="noopener noreferrer">${esc(text('openVideo'))}</a>
   `;
 }
 
@@ -1319,21 +1250,10 @@ function startMediaLoad(platform, frame, fallbackHost, frameFooter, sourceUrl, e
   runtime.status = 'loading';
   const isYouTube = platform === 'youtube';
 
-  // For YouTube: keep iframe visible, don't show loading fallback
-  // For Drive: show loading fallback and hide iframe
-  if (isYouTube) {
-    hideMediaFallback(fallbackHost);
-    renderMediaFooter(frameFooter, sourceUrl);
-    frame.classList.remove('is-hidden');
-  } else {
-    showMediaFallback(
-      fallbackHost,
-      renderMediaFallbackMarkup(text('loadingMediaTitle'), text('loadingMediaBody'), sourceUrl),
-      'loading',
-    );
-    renderMediaFooter(frameFooter, sourceUrl);
-    frame.classList.add('is-hidden');
-  }
+  // Keep iframe visible while loading for both YouTube and Drive
+  hideMediaFallback(fallbackHost);
+  renderMediaFooter(frameFooter, sourceUrl);
+  frame.classList.remove('is-hidden');
 
   const loadToken = runtime.loadToken;
   runtime.frame = frame;
@@ -1363,18 +1283,8 @@ function startMediaLoad(platform, frame, fallbackHost, frameFooter, sourceUrl, e
     current.timeoutId = 0;
     current.status = 'timeout';
 
-    // For YouTube: keep iframe visible, show advisory footer only
-    // For Drive: hide iframe and show full fallback
-    if (isYouTube) {
-      renderMediaFooterWithAdvisory(frameFooter, sourceUrl, text('mediaTimeoutBody'));
-    } else {
-      frame.classList.add('is-hidden');
-      showMediaFallback(
-        fallbackHost,
-        renderMediaFallbackMarkup(text('mediaTimeoutTitle'), text('mediaTimeoutBody'), sourceUrl),
-        'timeout',
-      );
-    }
+    // Keep iframe visible on timeout, show advisory footer
+    renderMediaFooterWithAdvisory(frameFooter, sourceUrl, text('mediaTimeoutBody'));
   }, MEDIA_LOAD_TIMEOUT_MS);
 
   if (frame.getAttribute('src') !== embedUrl) {
@@ -1388,7 +1298,6 @@ function startMediaLoad(platform, frame, fallbackHost, frameFooter, sourceUrl, e
 
 function applyMediaRuntimePresentation(platform, frame, fallbackHost, frameFooter) {
   const runtime = getMediaRuntime(platform);
-  const isYouTube = platform === 'youtube';
 
   if (runtime.status === 'ready') {
     renderMediaFooter(frameFooter, runtime.sourceUrl);
@@ -1398,40 +1307,18 @@ function applyMediaRuntimePresentation(platform, frame, fallbackHost, frameFoote
   }
 
   if (runtime.status === 'timeout') {
-    if (isYouTube) {
-      // For YouTube: keep iframe visible, show advisory footer
-      renderMediaFooterWithAdvisory(frameFooter, runtime.sourceUrl, text('mediaTimeoutBody'));
-      frame.classList.remove('is-hidden');
-      hideMediaFallback(fallbackHost);
-    } else {
-      // For Drive: hide iframe, show full fallback
-      renderMediaFooter(frameFooter, runtime.sourceUrl);
-      frame.classList.add('is-hidden');
-      showMediaFallback(
-        fallbackHost,
-        renderMediaFallbackMarkup(text('mediaTimeoutTitle'), text('mediaTimeoutBody'), runtime.sourceUrl),
-        'timeout',
-      );
-    }
+    // Keep iframe visible on timeout, show advisory footer
+    renderMediaFooterWithAdvisory(frameFooter, runtime.sourceUrl, text('mediaTimeoutBody'));
+    frame.classList.remove('is-hidden');
+    hideMediaFallback(fallbackHost);
     return;
   }
 
   if (runtime.status === 'loading') {
-    if (isYouTube) {
-      // For YouTube: keep iframe visible
-      renderMediaFooter(frameFooter, runtime.sourceUrl);
-      frame.classList.remove('is-hidden');
-      hideMediaFallback(fallbackHost);
-    } else {
-      // For Drive: show loading fallback, hide iframe
-      renderMediaFooter(frameFooter, runtime.sourceUrl);
-      frame.classList.add('is-hidden');
-      showMediaFallback(
-        fallbackHost,
-        renderMediaFallbackMarkup(text('loadingMediaTitle'), text('loadingMediaBody'), runtime.sourceUrl),
-        'loading',
-      );
-    }
+    // Keep iframe visible while loading
+    renderMediaFooter(frameFooter, runtime.sourceUrl);
+    frame.classList.remove('is-hidden');
+    hideMediaFallback(fallbackHost);
     return;
   }
 
@@ -1675,7 +1562,7 @@ function getVideoLanguageLabel(video) {
   if (!video) return '';
   const lang = String(video.language || '').trim().toLowerCase();
   if (!lang) return '';
-  if (lang.startsWith('ko') || lang === 'kr') return 'KO';
+  if (lang.startsWith('ko')) return 'KO';
   if (lang.startsWith('en')) return 'EN';
   return lang.substring(0, 2).toUpperCase();
 }
@@ -1684,10 +1571,10 @@ function getPlatformVideos(form, platform) {
   const items = (form.videos || []).filter(item => item.platform === platform);
   if (!items.length) return [];
 
-  const preferredLanguage = state.language === 'ko' || state.language === 'kr' ? 'ko' : 'en';
+  const preferredLanguage = state.language === 'ko' ? 'ko' : 'en';
   const matching = items.filter(item => {
     const language = String(item.language || '').toLowerCase();
-    return preferredLanguage === 'ko' ? language === 'ko' || language === 'kr' : language === 'en';
+    return preferredLanguage === 'ko' ? language === 'ko' : language === 'en';
   });
   if (matching.length) return matching;
 
@@ -1758,7 +1645,7 @@ function getCollator(language) {
 
 function displayName(form, language) {
   if (!form) return '';
-  const isKo = language === 'ko' || language === 'kr';
+  const isKo = language === 'ko';
   if (isKo) {
     return (form.translations &&
             form.translations.ko &&
@@ -1769,16 +1656,6 @@ function displayName(form, language) {
            '';
   }
   return form.formName || form.name || form.sheetFormName || '';
-}
-
-function localizedField(form, field, language) {
-  if (!form || !field) return '';
-  const translations = form.translations || {};
-  return firstNonEmpty(
-    textValue(translations?.[language]?.[field], language),
-    textValue(translations?.en?.[field], 'en'),
-    textValue(form[field], language),
-  );
 }
 
 function pickLocalized(value, language) {
@@ -1805,297 +1682,16 @@ function textValue(value, language = state.language) {
   return '';
 }
 
-function resolvePreviewValue(value, language) {
-  if (value == null) return '';
-  if (typeof value === 'string') return value;
-  if (Array.isArray(value)) return value.map(item => resolvePreviewValue(item, language)).filter(Boolean).join(' ');
-  if (typeof value === 'object') {
-    if (language === 'ko') {
-      return firstNonEmpty(
-        textValue(value.ko, 'ko'),
-        textValue(value.en, 'en'),
-        textValue(Object.values(value)[0], language),
-      );
-    }
-
-    return firstNonEmpty(
-      textValue(value[language], language),
-      textValue(value.en, 'en'),
-      textValue(Object.values(value)[0], language),
-    );
-  }
-  return String(value);
-}
-
-function resolvePreviewHtml(form, language) {
-  const raw = firstNonEmpty(
-    resolvePreviewValue(form.docPreviewHtml, language),
-    resolvePreviewValue(form.docPreviewText, language),
-    resolvePreviewValue(form.docPreviewHtml, 'en'),
-    resolvePreviewValue(form.docPreviewText, 'en'),
-  );
-
-  if (!raw) return '';
-  if (/<[a-z][\s\S]*>/i.test(raw)) return sanitizeHtml(raw, language);
-  return `<p>${esc(cleanPreviewText(raw, language)).replace(/\n{2,}/g, '</p><p>').replace(/\n/g, '<br />')}</p>`;
-}
-
-function throwIfAborted(signal) {
-  if (signal?.aborted) {
-    throw new DOMException('Preview load aborted.', 'AbortError');
-  }
-}
-
-function getPreviewFailureEntry(formId) {
-  const entry = previewFailureCache.get(formId);
-  if (!entry) return null;
-  if (entry.expiresAt <= Date.now()) {
-    previewFailureCache.delete(formId);
-    return null;
-  }
-  return entry;
-}
-
-async function getResolvedPreviewHtml(form, language, {signal} = {}) {
-  const cacheKey = getPreviewCacheKey(form.id, language);
-  if (previewHtmlCache.has(cacheKey)) {
-    return previewHtmlCache.get(cacheKey) || '';
-  }
-
-  if (!hasPreviewSource(form, language)) {
-    return '';
-  }
-
-  throwIfAborted(signal);
-  const previewSource = await loadPreviewSource(form, {signal});
-  throwIfAborted(signal);
-  const previewHtml = previewSource ? resolveLoadedPreviewHtml(previewSource, language) : '';
-  throwIfAborted(signal);
-  previewHtmlCache.set(cacheKey, previewHtml);
-  return previewHtml;
-}
-
-async function loadPreviewSource(form, {signal} = {}) {
-  if (!form) return null;
-  if (hasInlinePreviewSource(form)) return form;
-  if (!form.previewDataUrl) return null;
-
-  if (previewSourceCache.has(form.id)) {
-    return previewSourceCache.get(form.id) || null;
-  }
-
-  const cachedFailure = getPreviewFailureEntry(form.id);
-  if (cachedFailure) {
-    throw cachedFailure.error;
-  }
-
-  try {
-    const response = await fetch(form.previewDataUrl, {signal});
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    const payload = await response.json();
-    throwIfAborted(signal);
-    const previewSource = normalizePreviewPayload(payload, form);
-    previewSourceCache.set(form.id, previewSource);
-    previewFailureCache.delete(form.id);
-    return previewSource;
-  } catch (error) {
-    if (error?.name !== 'AbortError') {
-      previewFailureCache.set(form.id, {
-        error,
-        expiresAt: Date.now() + PREVIEW_FAILURE_TTL_MS,
-      });
-    }
-    throw error;
-  }
-}
-
-function normalizePreviewPayload(payload, form) {
-  return {
-    id: payload?.id || form.id,
-    schemaVersion: payload?.schemaVersion ?? 0,
-    trustedPreview: Boolean(form.previewDataUrl),
-    docPreviewTitle: payload?.docPreviewTitle ?? form.docPreviewTitle ?? '',
-    docPreviewImages: payload?.docPreviewImages ?? '',
-    docPreviewHtml: payload?.docPreviewHtml ?? '',
-    docPreviewText: payload?.docPreviewText ?? '',
-  };
-}
-
-function resolveLoadedPreviewHtml(previewSource, language) {
-  const previewImages = resolvePreviewImages(previewSource.docPreviewImages, language);
-  if (previewImages.length) {
-    return renderPreviewImagesMarkup(previewImages);
-  }
-
-  const raw = firstNonEmpty(
-    resolvePreviewValue(previewSource.docPreviewHtml, language),
-    resolvePreviewValue(previewSource.docPreviewText, language),
-    resolvePreviewValue(previewSource.docPreviewHtml, 'en'),
-    resolvePreviewValue(previewSource.docPreviewText, 'en'),
-  );
-
-  if (!raw) return '';
-
-  if (!/<[a-z][\s\S]*>/i.test(raw)) {
-    return `<p>${esc(cleanPreviewText(raw, language)).replace(/\n{2,}/g, '</p><p>').replace(/\n/g, '<br />')}</p>`;
-  }
-
-  if (previewSource.trustedPreview || previewSource.schemaVersion === 1) {
-    return sanitizeHtml(raw, language);
-  }
-
-  return sanitizeHtml(raw, language);
-}
-
-function renderPreviewImagesMarkup(images) {
-  return `
-    <div class="doc-preview-pages">
-      ${images
-        .map(
-          (src, index) => `
-            <figure class="doc-preview-page">
-              <img
-                class="doc-preview-page__image"
-                src="${esc(src)}"
-                alt="${esc(text('documentPreview'))} page ${index + 1}"
-                ${index === 0 ? 'decoding="async"' : 'loading="lazy" decoding="async"'}
-              />
-            </figure>
-          `,
-        )
-        .join('')}
-    </div>
-  `;
-}
-
-function resolvePreviewImages(value, language) {
-  if (value == null) return [];
-  if (typeof value === 'string') {
-    return firstString(value) ? [firstString(value)] : [];
-  }
-  if (Array.isArray(value)) {
-    return value
-      .map(item => firstString(typeof item === 'string' ? item : textValue(item, language)))
-      .filter(Boolean);
-  }
-  if (typeof value === 'object') {
-    return firstNonEmptyArray(
-      normalizePreviewImageList(value[language], language),
-      normalizePreviewImageList(value.en, 'en'),
-      normalizePreviewImageList(value.ko, 'ko'),
-      ...Object.values(value).map(entry => normalizePreviewImageList(entry, language)),
-    );
-  }
-  return [];
-}
-
-function normalizePreviewImageList(value, language) {
-  if (value == null) return [];
-  if (typeof value === 'string') {
-    return firstString(value) ? [firstString(value)] : [];
-  }
-  if (Array.isArray(value)) {
-    return value
-      .map(item => firstString(typeof item === 'string' ? item : textValue(item, language)))
-      .filter(Boolean);
-  }
-  return [];
-}
-
-function hasInlinePreviewSource(form, language = state.language) {
-  return Boolean(
-    form &&
-      firstNonEmpty(
-      resolvePreviewValue(form.docPreviewHtml, language),
-      resolvePreviewValue(form.docPreviewText, language),
-      resolvePreviewValue(form.docPreviewHtml, 'en'),
-      resolvePreviewValue(form.docPreviewText, 'en'),
-    ),
-  );
-}
-
 function hasPreviewSource(form, language = state.language) {
-  return Boolean(form?.previewDataUrl || form?.hasDocxPreview || hasInlinePreviewSource(form, language));
-}
-
-function sanitizeHtml(html, language = state.language) {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(`<div>${html}</div>`, 'text/html');
-  const root = doc.body.firstElementChild;
-  if (!root) return '';
-
-  root.querySelectorAll('script, iframe, object, embed, link').forEach(node => node.remove());
-
-  root.querySelectorAll('*').forEach(node => {
-    Array.from(node.attributes).forEach(attribute => {
-      if (/^on/i.test(attribute.name)) {
-        node.removeAttribute(attribute.name);
-      }
-    });
-  });
-
-  if (language !== 'ko') {
-    prunePreviewContent(root, language);
-  }
-
-  return root.innerHTML;
-}
-
-function prunePreviewContent(root, language = state.language) {
-  root.querySelectorAll('table, p, blockquote, ul, ol').forEach(block => {
-    const value = normalizeWhitespace(block.textContent);
-    if (shouldRemovePreviewBlock(value)) {
-      block.remove();
-      return;
-    }
-    cleanPreviewTextNodes(block, language);
-    if (!normalizeWhitespace(block.textContent)) {
-      block.remove();
-    }
-  });
-
-  cleanPreviewTextNodes(root, language);
-
-  root.querySelectorAll('*').forEach(node => {
-    if (!node.children.length && !normalizeWhitespace(node.textContent)) {
-      node.remove();
-    }
-  });
-}
-
-function cleanPreviewTextNodes(root, language = state.language) {
-  const walker = root.ownerDocument.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  const nodes = [];
-  while (walker.nextNode()) {
-    nodes.push(walker.currentNode);
-  }
-
-  for (const node of nodes) {
-    node.textContent = cleanPreviewText(node.textContent, language);
-  }
-}
-
-function shouldRemovePreviewBlock(value) {
-  return PREVIEW_BLOCK_REMOVAL_PATTERNS.some(pattern => pattern.test(value));
-}
-
-function cleanPreviewText(value, language = state.language) {
-  if (value == null) return '';
-  if (language === 'ko') return String(value).trim();
-
-  let cleaned = String(value);
-  cleaned = cleaned.replace(/<br\s*\/?>\s*이 양식은 Health Professions[^<]*/gi, '');
-  cleaned = cleaned.replace(/\s*\/\s*[\u1100-\u11FF\u3130-\u318F\uAC00-\uD7AF][\u1100-\u11FF\u3130-\u318F\uAC00-\uD7AF\s().,&/:-]*/g, '');
-  cleaned = cleaned.replace(/\s*[—-]\s*[\u1100-\u11FF\u3130-\u318F\uAC00-\uD7AF][\u1100-\u11FF\u3130-\u318F\uAC00-\uD7AF\s().,&/:-]*/g, '');
-  cleaned = cleaned.replace(/[\u1100-\u11FF\u3130-\u318F\uAC00-\uD7AF][\u1100-\u11FF\u3130-\u318F\uAC00-\uD7AF\s().,&/:-]*/g, '');
-  cleaned = cleaned.replace(/\s{2,}/g, ' ');
-  cleaned = cleaned.replace(/\s+([,.;:])/g, '$1');
-  cleaned = cleaned.replace(/\(\s*\)/g, '');
-  cleaned = cleaned.replace(/^\s+|\s+$/g, '');
-  cleaned = cleaned.replace(/\s*\|\s*$/g, '');
-  return cleaned.trim();
+  const hasInline =
+    form &&
+    firstNonEmpty(
+      pickLocalized(form.docPreviewHtml, language),
+      pickLocalized(form.docPreviewText, language),
+      pickLocalized(form.docPreviewHtml, 'en'),
+      pickLocalized(form.docPreviewText, 'en'),
+    );
+  return Boolean(form?.previewDataUrl || form?.hasDocxPreview || hasInline);
 }
 
 function normalizeWhitespace(value) {

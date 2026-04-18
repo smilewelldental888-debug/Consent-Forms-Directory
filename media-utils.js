@@ -279,12 +279,17 @@ export function extractYouTubeId(url, {baseHref = ''} = {}) {
 }
 
 export function buildCanonicalYouTubeUrl(url, {baseHref = ''} = {}) {
-  const id = extractYouTubeId(url, {baseHref});
-  return buildCanonicalYouTubeUrlFromId(id);
+  const parsed = parseMediaUrl(url, {baseHref});
+  const id = extractYouTubeIdFromParsed(parsed, url);
+  const startTime = extractYouTubeStartTime(parsed, url);
+  return buildCanonicalYouTubeUrlFromId(id, startTime);
 }
 
 export function buildYouTubeEmbedUrl(url, {origin = '', baseHref = ''} = {}) {
-  return buildYouTubeEmbedUrlFromId(extractYouTubeId(url, {baseHref}), {origin});
+  const parsed = parseMediaUrl(url, {baseHref});
+  const id = extractYouTubeIdFromParsed(parsed, url);
+  const startTime = extractYouTubeStartTime(parsed, url);
+  return buildYouTubeEmbedUrlFromId(id, {origin, startTime});
 }
 
 export function extractDriveId(url, {baseHref = ''} = {}) {
