@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "defaultLocation": "coquitlam",
+  "locations": [
+    {
+      "slug": "coquitlam",
+      "label": {
+        "en": "Coquitlam",
+        "ko": "코퀴틀람"
+      },
+      "enabled": true,
+      "formUrls": {
+        "hipaa": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=190295",
+        "financial-agreement": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=190265",
+        "composite-resin-filling-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=195572",
+        "periodontal-treatment-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=196601",
+        "patient-intake-form": "",
+        "bone-graft-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=190271",
+        "botox-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=190274",
+        "crown-bridge-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=190277",
+        "extraction-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=190280",
+        "implant-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=190283",
+        "oral-surgery-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=190289",
+        "rct-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=190292",
+        "aftercare-consent": ""
+      }
+    },
+    {
+      "slug": "langley",
+      "label": {
+        "en": "Langley",
+        "ko": "랭리"
+      },
+      "enabled": true,
+      "formUrls": {
+        "hipaa": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=98922&RKID=35097&WSDID=195554",
+        "financial-agreement": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=98922&RKID=35097&WSDID=195551",
+        "composite-resin-filling-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=98922&RKID=35097&WSDID=196586",
+        "periodontal-treatment-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=98922&RKID=35097&WSDID=196598",
+        "patient-intake-form": "",
+        "bone-graft-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=98922&RKID=35097&WSDID=195539",
+        "botox-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=98922&RKID=35097&WSDID=195542",
+        "crown-bridge-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=98922&RKID=35097&WSDID=195545",
+        "extraction-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=98922&RKID=35097&WSDID=195548",
+        "implant-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=98922&RKID=35097&WSDID=195557",
+        "oral-surgery-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=98922&RKID=35097&WSDID=195560",
+        "rct-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=98922&RKID=35097&WSDID=195563",
+        "aftercare-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=98922&RKID=35097&WSDID=196583"
+      }
+    },
+    {
+      "slug": "north-vancouver",
+      "label": {
+        "en": "North Vancouver",
+        "ko": "노스 밴쿠버"
+      },
+      "enabled": true,
+      "formUrls": {
+        "hipaa": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=64790&RKID=41960&WSDID=195641",
+        "financial-agreement": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=64790&RKID=41960&WSDID=195638",
+        "composite-resin-filling-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=64790&RKID=41960&WSDID=196595",
+        "periodontal-treatment-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=64790&RKID=41960&WSDID=196607",
+        "patient-intake-form": "",
+        "bone-graft-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=64790&RKID=41960&WSDID=195623",
+        "botox-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=64790&RKID=41960&WSDID=195626",
+        "crown-bridge-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=64790&RKID=41960&WSDID=195632",
+        "extraction-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=64790&RKID=41960&WSDID=195635",
+        "implant-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=64790&RKID=41960&WSDID=195644",
+        "oral-surgery-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=64790&RKID=41960&WSDID=195647",
+        "rct-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=64790&RKID=41960&WSDID=195653",
+        "aftercare-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=64790&RKID=41960&WSDID=196592"
+      }
+    },
+    {
+      "slug": "surrey",
+      "label": {
+        "en": "Surrey",
+        "ko": "써리"
+      },
+      "enabled": true,
+      "formUrls": {
+        "hipaa": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=195608",
+        "financial-agreement": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=195605",
+        "composite-resin-filling-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=195596",
+        "periodontal-treatment-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=196604",
+        "patient-intake-form": "",
+        "bone-graft-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=195590",
+        "botox-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=195593",
+        "crown-bridge-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=195599",
+        "extraction-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=195602",
+        "implant-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=195611",
+        "oral-surgery-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=195614",
+        "rct-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=195620",
+        "aftercare-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=196589"
+      }
+    }
+  ]
+}
