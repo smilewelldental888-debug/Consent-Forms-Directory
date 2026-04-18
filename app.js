@@ -5,7 +5,6 @@ const LOCATIONS_URL = './data/locations.json';
 const PAGE_PARAMS = new URLSearchParams(window.location.search);
 const IS_PREVIEW_SHELL = PAGE_PARAMS.get('preview-shell') === '1';
 const MEDIA_LOAD_TIMEOUT_MS = 8000;
-const GDRIVE_TIMEOUT_MS = 15000;
 const STORAGE = {
   language: 'opendental-directory-language',
   activeForm: 'opendental-directory-active-form',
@@ -25,7 +24,7 @@ const THEME_MEDIA =
 
 const LANGUAGE_SHORT = {
   en: 'EN',
-  ko: 'KR',
+  ko: 'KO',
 };
 
 const I18N = {
@@ -43,6 +42,7 @@ const I18N = {
     formListTitle: 'Active forms',
     locationLabel: 'Location',
     locationLoadFailed: 'Location data unavailable',
+    locationLoadFailedFull: 'Locations unavailable. Please refresh or contact support.',
     languageLabel: 'Language',
     themeLabel: 'Theme',
     themeLight: 'Light',
@@ -94,6 +94,13 @@ const I18N = {
     previewReady: 'Preview ready',
     formReady: 'Form ready',
     languageNames: {en: 'English', ko: '한국어'},
+    pdfPage: 'Page',
+    pdfOf: 'of',
+    pdfZoomIn: 'Zoom in',
+    pdfZoomOut: 'Zoom out',
+    pdfPrevPage: 'Previous page',
+    pdfNextPage: 'Next page',
+    pdfUnavailable: 'Preview unavailable. Please ask staff for assistance.',
   },
   ko: {
     sidebarEyebrow: '양식',
@@ -109,6 +116,7 @@ const I18N = {
     formListTitle: '활성 양식',
     locationLabel: '지점',
     locationLoadFailed: '지점 데이터를 불러올 수 없습니다',
+    locationLoadFailedFull: '지점 정보를 사용할 수 없습니다. 새로고침하거나 직원에게 문의하세요.',
     languageLabel: '언어',
     themeLabel: '테마',
     themeLight: '라이트',
@@ -159,6 +167,13 @@ const I18N = {
     previewReady: '미리보기 가능',
     formReady: '양식 가능',
     languageNames: {en: 'English', ko: '한국어'},
+    pdfPage: '페이지',
+    pdfOf: '/',
+    pdfZoomIn: '확대',
+    pdfZoomOut: '축소',
+    pdfPrevPage: '이전 페이지',
+    pdfNextPage: '다음 페이지',
+    pdfUnavailable: '미리보기를 사용할 수 없습니다. 직원에게 문의하세요.',
   },
 };
 
@@ -199,8 +214,6 @@ const mediaRuntime = {
 };
 let tabSliderFrame = 0;
 let detailRenderToken = 0;
-let gdriveTimeoutId = 0;
-let gdriveTimeoutToken = 0;
 
 document.addEventListener('DOMContentLoaded', bootstrap);
 window.addEventListener('storage', onStorageChange);
@@ -261,6 +274,26 @@ function bindEvents() {
       renderTabs();
       renderDetail();
       announce(text(next === 'youtube' ? 'tabYouTube' : next === 'drive' ? 'tabDrive' : 'tabForm'));
+    });
+
+    button.addEventListener('keydown', (e) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+      const enabledButtons = el.tabButtons.filter(btn => !btn.disabled);
+      if (enabledButtons.length < 2) return;
+      const currentIndex = enabledButtons.indexOf(button);
+      if (currentIndex < 0) return;
+      const direction = e.key === 'ArrowLeft' ? -1 : 1;
+      const nextIndex = (currentIndex + direction + enabledButtons.length) % enabledButtons.length;
+      const targetButton = enabledButtons[nextIndex];
+      targetButton.focus();
+      const next = targetButton.dataset.tab;
+      if (next && next !== state.activeTab) {
+        pauseYouTubeIfLeaving(next);
+        state.activeTab = next;
+        renderTabs();
+        renderDetail();
+        announce(text(next === 'youtube' ? 'tabYouTube' : next === 'drive' ? 'tabDrive' : 'tabForm'));
+      }
     });
   });
 
@@ -455,6 +488,9 @@ function populateLocationSelect() {
 
   el.locationSelect.innerHTML = '';
 
+  const controlGroup = el.locationSelect.closest('.control-group');
+  const existingError = controlGroup?.querySelector('.location-load-error');
+
   if (state.locationLoadFailed) {
     const option = document.createElement('option');
     option.value = '';
@@ -462,8 +498,17 @@ function populateLocationSelect() {
     option.disabled = true;
     option.selected = true;
     el.locationSelect.appendChild(option);
+
+    if (controlGroup && !existingError) {
+      const errorEl = document.createElement('p');
+      errorEl.className = 'location-load-error';
+      errorEl.textContent = text('locationLoadFailedFull');
+      controlGroup.appendChild(errorEl);
+    }
     return;
   }
+
+  if (existingError) existingError.remove();
 
   for (const loc of state.locations) {
     const option = document.createElement('option');
@@ -565,10 +610,11 @@ function normalizePlatform(platform, url) {
 }
 
 function hasUsableFormData(form) {
+  const pdfPath = resolvePdfPath(form, 'en') || resolvePdfPath(form, state.language);
   return Boolean(
     form &&
       displayName(form, 'en') &&
-      (getFormSignUrl(form) || hasPreviewSource(form, 'en') || hasPreviewSource(form, state.language) || (form.videos || []).length),
+      (getFormSignUrl(form) || hasPreviewSource(form, 'en') || hasPreviewSource(form, state.language) || (form.videos || []).length || pdfPath),
   );
 }
 
@@ -715,6 +761,7 @@ function renderTabs() {
     button.disabled = !enabled;
     button.classList.toggle('is-active', active);
     button.setAttribute('aria-selected', String(active));
+    button.setAttribute('tabindex', active ? '0' : '-1');
   });
 
   scheduleTabSliderSync();
@@ -725,10 +772,6 @@ function renderDetail() {
   const renderToken = detailRenderToken;
   const form = getActiveVisibleForm();
   if (!form) {
-    if (gdriveTimeoutId) {
-      window.clearTimeout(gdriveTimeoutId);
-      gdriveTimeoutId = 0;
-    }
     cancelActivePreviewLoad();
     clearAllMediaRuntime();
     el.detailBody.innerHTML = '';
@@ -742,10 +785,6 @@ function renderDetail() {
   setActiveDetailPane(state.activeTab);
 
   if (state.activeTab === 'youtube' || state.activeTab === 'drive') {
-    if (gdriveTimeoutId) {
-      window.clearTimeout(gdriveTimeoutId);
-      gdriveTimeoutId = 0;
-    }
     cancelActivePreviewLoad();
     renderMediaDetail(form, state.activeTab, {forceMount: didMountDetailPanes});
     return;
@@ -773,9 +812,9 @@ function ensureDetailPanesMounted(form) {
 function renderDetailPanes() {
   return `
     <div class="detail-panes">
-      <section class="detail-pane" data-detail-pane="form"></section>
-      <section class="detail-pane is-hidden" data-detail-pane="youtube" aria-hidden="true"></section>
-      <section class="detail-pane is-hidden" data-detail-pane="drive" aria-hidden="true"></section>
+      <section class="detail-pane" id="panel-form" data-detail-pane="form" role="tabpanel"></section>
+      <section class="detail-pane is-hidden" id="panel-youtube" data-detail-pane="youtube" aria-hidden="true" role="tabpanel"></section>
+      <section class="detail-pane is-hidden" id="panel-drive" data-detail-pane="drive" aria-hidden="true" role="tabpanel"></section>
     </div>
   `;
 }
@@ -832,11 +871,6 @@ function renderFormDetail(form, renderToken, {forceMount = false} = {}) {
   const host = getDocPreviewHost(paneHost);
   if (!(host instanceof HTMLElement)) return;
 
-  if (gdriveTimeoutId) {
-    window.clearTimeout(gdriveTimeoutId);
-    gdriveTimeoutId = 0;
-  }
-
   const pdfPath = resolvePdfPath(form, state.language);
   host.innerHTML = '';
   host.scrollTop = 0;
@@ -886,20 +920,6 @@ function renderFormPane(form) {
   `;
 }
 
-function resolveViewerFileId(form, language) {
-  const raw = form?.googleViewerFileId;
-  if (!raw) return '';
-  if (typeof raw === 'string') return raw.trim();
-  if (typeof raw !== 'object') return '';
-
-  const isKo = language === 'ko';
-  if (isKo) {
-    return firstString(raw.ko, raw.kr, raw.en);
-  }
-
-  return firstString(raw.en, raw.ko, raw.kr);
-}
-
 function resolvePdfPath(form, language) {
   const raw = form?.pdfPath;
   if (!raw) return '';
@@ -933,7 +953,7 @@ async function renderPdfPreview(pdfPath, containerId) {
 
   const pageCounter = document.createElement('span');
   pageCounter.className = 'pdf-toolbar__counter';
-  pageCounter.textContent = 'Page 1 / 1';
+  pageCounter.textContent = `${text('pdfPage')} 1 ${text('pdfOf')} 1`;
 
   const navGroup = document.createElement('div');
   navGroup.className = 'pdf-toolbar__group';
@@ -942,13 +962,13 @@ async function renderPdfPreview(pdfPath, containerId) {
   prevBtn.type = 'button';
   prevBtn.className = 'pdf-toolbar__btn';
   prevBtn.textContent = '\u2190';
-  prevBtn.setAttribute('aria-label', 'Previous page');
+  prevBtn.setAttribute('aria-label', text('pdfPrevPage'));
 
   const nextBtn = document.createElement('button');
   nextBtn.type = 'button';
   nextBtn.className = 'pdf-toolbar__btn';
   nextBtn.textContent = '\u2192';
-  nextBtn.setAttribute('aria-label', 'Next page');
+  nextBtn.setAttribute('aria-label', text('pdfNextPage'));
 
   navGroup.appendChild(prevBtn);
   navGroup.appendChild(nextBtn);
@@ -960,13 +980,13 @@ async function renderPdfPreview(pdfPath, containerId) {
   zoomOutBtn.type = 'button';
   zoomOutBtn.className = 'pdf-toolbar__btn';
   zoomOutBtn.textContent = '\u2212';
-  zoomOutBtn.setAttribute('aria-label', 'Zoom out');
+  zoomOutBtn.setAttribute('aria-label', text('pdfZoomOut'));
 
   const zoomInBtn = document.createElement('button');
   zoomInBtn.type = 'button';
   zoomInBtn.className = 'pdf-toolbar__btn';
   zoomInBtn.textContent = '+';
-  zoomInBtn.setAttribute('aria-label', 'Zoom in');
+  zoomInBtn.setAttribute('aria-label', text('pdfZoomIn'));
 
   zoomGroup.appendChild(zoomOutBtn);
   zoomGroup.appendChild(zoomInBtn);
@@ -998,7 +1018,7 @@ async function renderPdfPreview(pdfPath, containerId) {
     const context = canvas.getContext('2d');
     await page.render({canvasContext: context, viewport}).promise;
 
-    pageCounter.textContent = `Page ${pageNum} / ${totalPages}`;
+    pageCounter.textContent = `${text('pdfPage')} ${pageNum} ${text('pdfOf')} ${totalPages}`;
     prevBtn.disabled = pageNum <= 1;
     nextBtn.disabled = pageNum >= totalPages;
   }
@@ -1037,76 +1057,13 @@ async function renderPdfPreview(pdfPath, containerId) {
     container.innerHTML = '';
     const errorEl = document.createElement('div');
     errorEl.className = 'pdf-viewer__error';
-    errorEl.textContent = 'Preview unavailable. Please ask staff for assistance.';
+    errorEl.textContent = text('pdfUnavailable');
     container.appendChild(errorEl);
   }
 }
 
-function renderGdriveViewerMarkup(form, fileId) {
-  const title = displayName(form, state.language) || 'Form Preview';
-  return `
-    <div class="gdrive-viewer-shell">
-      <iframe
-        id="gdrive-preview-frame"
-        src="https://drive.google.com/file/d/${esc(fileId)}/preview"
-        sandbox="allow-scripts allow-same-origin allow-popups"
-        frameborder="0"
-        allowfullscreen
-        title="${esc(title)}"
-      ></iframe>
-      <div class="gdrive-viewer-timeout" id="gdrive-timeout-overlay" style="display:none;">
-        <p>Preview is taking too long to load.</p>
-        <button type="button" class="action-button action-button--ghost" data-action="reload-gdrive-preview">Reload</button>
-      </div>
-    </div>
-  `;
-}
-
 function renderPreviewUnavailableMarkup() {
   return '<p class="preview-unavailable">Preview not available for this form.</p>';
-}
-
-function startGdriveTimeout() {
-  const frame = document.getElementById('gdrive-preview-frame');
-  const overlay = document.getElementById('gdrive-timeout-overlay');
-  if (!(frame instanceof HTMLIFrameElement) || !(overlay instanceof HTMLElement)) return;
-
-  if (gdriveTimeoutId) {
-    window.clearTimeout(gdriveTimeoutId);
-    gdriveTimeoutId = 0;
-  }
-
-  overlay.style.display = 'none';
-  const timeoutToken = ++gdriveTimeoutToken;
-  gdriveTimeoutId = window.setTimeout(() => {
-    if (timeoutToken !== gdriveTimeoutToken) return;
-    overlay.style.display = 'flex';
-    gdriveTimeoutId = 0;
-  }, GDRIVE_TIMEOUT_MS);
-
-  frame.addEventListener(
-    'load',
-    () => {
-      if (timeoutToken !== gdriveTimeoutToken) return;
-      if (gdriveTimeoutId) {
-        window.clearTimeout(gdriveTimeoutId);
-        gdriveTimeoutId = 0;
-      }
-      overlay.style.display = 'none';
-    },
-    {once: true},
-  );
-}
-
-function reloadGdriveFrame() {
-  const frame = document.getElementById('gdrive-preview-frame');
-  const overlay = document.getElementById('gdrive-timeout-overlay');
-  if (!(frame instanceof HTMLIFrameElement)) return;
-  if (overlay instanceof HTMLElement) {
-    overlay.style.display = 'none';
-  }
-  frame.src = frame.src;
-  startGdriveTimeout();
 }
 
 function updateFormPaneActions(form, scope = document) {
@@ -1524,11 +1481,20 @@ function setActiveForm(formId) {
   state.activeFormId = formId;
   state.activeTab = 'form';
   save(STORAGE.activeForm, formId);
+
+  const form = getActiveVisibleForm();
+  const externalUrl = form?.externalUrl?.trim();
+  if (externalUrl) {
+    renderSidebarSelection(previousFormId, formId);
+    window.open(externalUrl, '_blank', 'noopener,noreferrer');
+    announce(form ? displayName(form, state.language) : text('emptyTitle'));
+    return;
+  }
+
   renderSidebarSelection(previousFormId, formId);
   renderMain();
   renderTabs();
   renderDetail();
-  const form = getActiveVisibleForm();
   announce(form ? displayName(form, state.language) : text('emptyTitle'));
 }
 
@@ -1714,15 +1680,6 @@ function firstNonEmpty(...values) {
     if (typeof value === 'string' && value.trim()) return value.trim();
   }
   return '';
-}
-
-function firstNonEmptyArray(...values) {
-  for (const value of values) {
-    if (Array.isArray(value) && value.length) {
-      return value;
-    }
-  }
-  return [];
 }
 
 function slugify(value) {
