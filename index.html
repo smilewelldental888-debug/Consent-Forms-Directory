@@ -63,12 +63,13 @@
             <div class="control-group">
               <label class="control-label" for="locationSelect" data-i18n="locationLabel">Location</label>
               <div class="select-shell">
-                <select id="locationSelect" class="language-select" aria-label="Location">
+                <select id="locationSelect" class="language-select" aria-label="Location" aria-describedby="locationSelectError">
                 </select>
                 <svg viewBox="0 0 24 24" aria-hidden="true">
                   <path d="M7 10l5 5 5-5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
               </div>
+              <p id="locationSelectError" class="location-load-error sr-only" role="status" aria-live="polite"></p>
             </div>
 
             <div class="control-group">
@@ -135,13 +136,13 @@
             <div class="detail-toolbar">
               <div class="tab-bar" role="tablist" aria-label="Content views">
                 <span class="tab-bar__slider" aria-hidden="true"></span>
-                <button type="button" class="tab-button is-active" data-tab="form" role="tab" aria-controls="panel-form" aria-selected="true" tabindex="0">
+                <button id="tab-form" type="button" class="tab-button is-active" data-tab="form" role="tab" aria-controls="panel-form" aria-selected="true" tabindex="0">
                   <span class="tab-button__label" data-i18n="tabForm">Preview</span>
                 </button>
-                <button type="button" class="tab-button" data-tab="youtube" role="tab" aria-controls="panel-youtube" aria-selected="false" tabindex="-1">
+                <button id="tab-youtube" type="button" class="tab-button" data-tab="youtube" role="tab" aria-controls="panel-youtube" aria-selected="false" tabindex="-1">
                   <span class="tab-button__label" data-i18n="tabYouTube">Video</span>
                 </button>
-                <button type="button" class="tab-button" data-tab="drive" role="tab" aria-controls="panel-drive" aria-selected="false" tabindex="-1">
+                <button id="tab-drive" type="button" class="tab-button" data-tab="drive" role="tab" aria-controls="panel-drive" aria-selected="false" tabindex="-1">
                   <span class="tab-button__label" data-i18n="tabDrive">Files</span>
                 </button>
               </div>

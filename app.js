@@ -489,7 +489,7 @@ function populateLocationSelect() {
   el.locationSelect.innerHTML = '';
 
   const controlGroup = el.locationSelect.closest('.control-group');
-  const existingError = controlGroup?.querySelector('.location-load-error');
+  const existingError = controlGroup?.querySelector('#locationSelectError');
 
   if (state.locationLoadFailed) {
     const option = document.createElement('option');
@@ -499,16 +499,17 @@ function populateLocationSelect() {
     option.selected = true;
     el.locationSelect.appendChild(option);
 
-    if (controlGroup && !existingError) {
-      const errorEl = document.createElement('p');
-      errorEl.className = 'location-load-error';
-      errorEl.textContent = text('locationLoadFailedFull');
-      controlGroup.appendChild(errorEl);
+    if (existingError instanceof HTMLElement) {
+      existingError.textContent = text('locationLoadFailedFull');
+      existingError.classList.remove('sr-only');
     }
     return;
   }
 
-  if (existingError) existingError.remove();
+  if (existingError instanceof HTMLElement) {
+    existingError.textContent = '';
+    existingError.classList.add('sr-only');
+  }
 
   for (const loc of state.locations) {
     const option = document.createElement('option');
@@ -812,9 +813,9 @@ function ensureDetailPanesMounted(form) {
 function renderDetailPanes() {
   return `
     <div class="detail-panes">
-      <section class="detail-pane" id="panel-form" data-detail-pane="form" role="tabpanel"></section>
-      <section class="detail-pane is-hidden" id="panel-youtube" data-detail-pane="youtube" aria-hidden="true" role="tabpanel"></section>
-      <section class="detail-pane is-hidden" id="panel-drive" data-detail-pane="drive" aria-hidden="true" role="tabpanel"></section>
+      <section class="detail-pane" id="panel-form" data-detail-pane="form" role="tabpanel" aria-labelledby="tab-form"></section>
+      <section class="detail-pane is-hidden" id="panel-youtube" data-detail-pane="youtube" aria-hidden="true" role="tabpanel" aria-labelledby="tab-youtube"></section>
+      <section class="detail-pane is-hidden" id="panel-drive" data-detail-pane="drive" aria-hidden="true" role="tabpanel" aria-labelledby="tab-drive"></section>
     </div>
   `;
 }

@@ -565,6 +565,162 @@
         "en": "/forms/aftercare-consent-en.pdf",
         "ko": "/forms/aftercare-consent-ko.pdf"
       }
+    },
+    {
+      "id": "denture-consent",
+      "sheetFormName": "Denture Consent",
+      "accessUrl": "",
+      "hasDocxPreview": false,
+      "docPreviewTitle": {
+        "en": "",
+        "ko": ""
+      },
+      "translations": {
+        "en": {
+          "formName": "Denture Consent",
+          "description": "",
+          "notes": ""
+        },
+        "ko": {
+          "formName": "Denture Consent",
+          "description": "",
+          "notes": ""
+        }
+      },
+      "videos": [
+        {
+          "platform": "youtube",
+          "url": "https://youtu.be/vjaF71fb4zM",
+          "title": "Denture Consent (English)",
+          "language": "en"
+        },
+        {
+          "platform": "drive",
+          "url": "https://drive.google.com/file/d/1Xqow6uywB25WL9SlXlEZa4wZRJD6Phz9/view?usp=drive_link",
+          "title": "Denture Consent - English (Drive)",
+          "language": "en"
+        },
+        {
+          "platform": "youtube",
+          "url": "https://youtu.be/G_kXuJR4Uvg",
+          "title": "Denture Consent (Korean)",
+          "language": "ko"
+        },
+        {
+          "platform": "drive",
+          "url": "https://drive.google.com/file/d/1QA5HpNVSLqzUFpHzK7gG9VBlqS7VYMsW/view?usp=drive_link",
+          "title": "Denture Consent - Korean (Drive)",
+          "language": "ko"
+        }
+      ],
+      "pdfPath": {
+        "en": "/forms/denture-consent-en.pdf",
+        "ko": "/forms/denture-consent-ko.pdf"
+      }
+    },
+    {
+      "id": "orthodontic-consent",
+      "sheetFormName": "Orthodontic Consent",
+      "accessUrl": "",
+      "hasDocxPreview": false,
+      "docPreviewTitle": {
+        "en": "",
+        "ko": ""
+      },
+      "translations": {
+        "en": {
+          "formName": "Orthodontic Consent",
+          "description": "",
+          "notes": ""
+        },
+        "ko": {
+          "formName": "Orthodontic Consent",
+          "description": "",
+          "notes": ""
+        }
+      },
+      "videos": [
+        {
+          "platform": "youtube",
+          "url": "https://youtu.be/8DB-5-mU6bI",
+          "title": "Orthodontic Consent (English)",
+          "language": "en"
+        },
+        {
+          "platform": "drive",
+          "url": "https://drive.google.com/file/d/1AFCpwb2rPYHFPp5XEg7_OH-iWkhsNQFg/view?usp=sharing",
+          "title": "Orthodontic Consent - English (Drive)",
+          "language": "en"
+        },
+        {
+          "platform": "youtube",
+          "url": "https://youtu.be/CW1arMyr0us",
+          "title": "Orthodontic Consent (Korean)",
+          "language": "ko"
+        },
+        {
+          "platform": "drive",
+          "url": "https://drive.google.com/file/d/1E56kXGN66Xx1y8t9Qf-hQUZ2mwHeM8PG/view?usp=drive_link",
+          "title": "Orthodontic Consent - Korean (Drive)",
+          "language": "ko"
+        }
+      ],
+      "pdfPath": {
+        "en": "/forms/orthodontic-consent-en.pdf",
+        "ko": "/forms/orthodontic-consent-ko.pdf"
+      }
+    },
+    {
+      "id": "sedation-consent",
+      "sheetFormName": "Sedation Consent",
+      "accessUrl": "",
+      "hasDocxPreview": false,
+      "docPreviewTitle": {
+        "en": "",
+        "ko": ""
+      },
+      "translations": {
+        "en": {
+          "formName": "Sedation Consent",
+          "description": "",
+          "notes": ""
+        },
+        "ko": {
+          "formName": "Sedation Consent",
+          "description": "",
+          "notes": ""
+        }
+      },
+      "videos": [
+        {
+          "platform": "youtube",
+          "url": "https://youtu.be/-iaFI3p9hOY",
+          "title": "Sedation Consent (English)",
+          "language": "en"
+        },
+        {
+          "platform": "drive",
+          "url": "https://drive.google.com/file/d/1dUyZDsvNm844b5rByUgR56EgmC73_Iby/view?usp=drive_link",
+          "title": "Sedation Consent - English (Drive)",
+          "language": "en"
+        },
+        {
+          "platform": "youtube",
+          "url": "https://youtu.be/F1L_g7nBETg",
+          "title": "Sedation Consent (Korean)",
+          "language": "ko"
+        },
+        {
+          "platform": "drive",
+          "url": "https://drive.google.com/file/d/1s3ionY8Nnv9-PFKlaJ0V5Pxi0wVymIdj/view?usp=drive_link",
+          "title": "Sedation Consent - Korean (Drive)",
+          "language": "ko"
+        }
+      ],
+      "pdfPath": {
+        "en": "/forms/sedation-consent-en.pdf",
+        "ko": "/forms/sedation-consent-ko.pdf"
+      }
     }
   ]
 }
