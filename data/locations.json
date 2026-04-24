@@ -22,7 +22,10 @@
         "implant-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=190283",
         "oral-surgery-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=190289",
         "rct-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=190292",
-        "aftercare-consent": ""
+        "aftercare-consent": "",
+        "denture-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=197819&AFNAB=N",
+        "orthodontic-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=197822&AFNAB=N",
+        "sedation-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=197825&AFNAB=N"
       }
     },
     {
@@ -45,7 +48,10 @@
         "implant-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=98922&RKID=35097&WSDID=195557",
         "oral-surgery-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=98922&RKID=35097&WSDID=195560",
         "rct-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=98922&RKID=35097&WSDID=195563",
-        "aftercare-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=98922&RKID=35097&WSDID=196583"
+        "aftercare-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=98922&RKID=35097&WSDID=196583",
+        "denture-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=98922&RKID=35097&WSDID=197810",
+        "orthodontic-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=98922&RKID=35097&WSDID=197813",
+        "sedation-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=98922&RKID=35097&WSDID=197816"
       }
     },
     {
@@ -68,7 +74,10 @@
         "implant-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=64790&RKID=41960&WSDID=195644",
         "oral-surgery-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=64790&RKID=41960&WSDID=195647",
         "rct-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=64790&RKID=41960&WSDID=195653",
-        "aftercare-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=64790&RKID=41960&WSDID=196592"
+        "aftercare-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=64790&RKID=41960&WSDID=196592",
+        "denture-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=64790&RKID=41960&WSDID=197840",
+        "orthodontic-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=64790&RKID=41960&WSDID=197843",
+        "sedation-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=64790&RKID=41960&WSDID=197846"
       }
     },
     {
@@ -91,7 +100,10 @@
         "implant-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=195611",
         "oral-surgery-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=195614",
         "rct-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=195620",
-        "aftercare-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=196589"
+        "aftercare-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=196589",
+        "denture-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=197831",
+        "orthodontic-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=197834",
+        "sedation-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=197837"
       }
     }
   ]
