@@ -90,7 +90,7 @@
       "formUrls": {
         "hipaa": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=195608",
         "financial-agreement": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=195605",
-        "composite-resin-filling-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=195596",
+        "composite-resin-filling-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=64790&RKID=41960&WSDID=196595",
         "periodontal-treatment-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=196604",
         "patient-intake-form": "",
         "bone-graft-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=195590",
