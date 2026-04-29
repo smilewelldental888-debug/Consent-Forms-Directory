@@ -5,7 +5,7 @@ const LOCATIONS_URL = './data/locations.json';
 const PAGE_PARAMS = new URLSearchParams(window.location.search);
 const IS_PREVIEW_SHELL = PAGE_PARAMS.get('preview-shell') === '1';
 const IS_PATIENT_LINK = PAGE_PARAMS.get('patient') === '1';
-const PATIENT_FORM_LIMIT = 3;
+const PATIENT_FORM_LIMIT = 7;
 const PATIENT_FORM_IDS = parsePatientFormIds(PAGE_PARAMS.get('forms') || '');
 const PATIENT_LOCATION = PAGE_PARAMS.get('location') || '';
 const MEDIA_LOAD_TIMEOUT_MS = 8000;
