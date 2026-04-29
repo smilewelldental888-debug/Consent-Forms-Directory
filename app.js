@@ -4,6 +4,10 @@ const DATA_URL = './data/forms.json';
 const LOCATIONS_URL = './data/locations.json';
 const PAGE_PARAMS = new URLSearchParams(window.location.search);
 const IS_PREVIEW_SHELL = PAGE_PARAMS.get('preview-shell') === '1';
+const IS_PATIENT_LINK = PAGE_PARAMS.get('patient') === '1';
+const PATIENT_FORM_LIMIT = 3;
+const PATIENT_FORM_IDS = parsePatientFormIds(PAGE_PARAMS.get('forms') || '');
+const PATIENT_LOCATION = PAGE_PARAMS.get('location') || '';
 const MEDIA_LOAD_TIMEOUT_MS = 8000;
 const STORAGE = {
   language: 'opendental-directory-language',
@@ -58,6 +62,11 @@ const I18N = {
     tabYouTube: 'YouTube',
     tabDrive: 'Drive',
     signTabAction: 'Sign Form',
+    copyPatientLink: 'Create Patient Link',
+    copyPatientLinkCopied: 'Patient link copied.',
+    copyPatientLinkFailed: 'Could not copy the patient link. Please try again.',
+    patientLinkInvalidForms: 'This patient link does not include any available consent forms. Please ask staff to resend it.',
+    patientLinkInvalidLocation: 'This patient link has an invalid clinic location. Please ask staff to resend it.',
     signTabMeta: 'OpenDental web form',
     signPanelEyebrow: 'Patient Signature',
     signPanelTitle: 'Ready to complete this consent?',
@@ -131,6 +140,11 @@ const I18N = {
     tabYouTube: 'YouTube',
     tabDrive: 'Drive',
     signTabAction: '서명 양식 열기',
+    copyPatientLink: '환자 링크 만들기',
+    copyPatientLinkCopied: '환자 링크가 복사되었습니다.',
+    copyPatientLinkFailed: '환자 링크를 복사하지 못했습니다. 다시 시도해 주세요.',
+    patientLinkInvalidForms: '이 환자 링크에는 사용 가능한 동의서가 없습니다. 직원에게 다시 요청해 주세요.',
+    patientLinkInvalidLocation: '이 환자 링크의 지점 정보가 올바르지 않습니다. 직원에게 다시 요청해 주세요.',
     signTabMeta: 'OpenDental 웹 양식',
     signPanelEyebrow: '환자 서명',
     signPanelTitle: '이 동의서를 바로 완료할까요?',
@@ -188,6 +202,9 @@ const state = {
   activeTab: 'form',
   videoSelection: {},
   emptyMode: 'default',
+  patientLinkError: '',
+  patientFormIds: [],
+  patientLinkSelectedForms: [],
 };
 
 const el = {
@@ -196,6 +213,12 @@ const el = {
   detailShell: document.querySelector('#detailShell'),
   detailBody: document.querySelector('#detailBody'),
   signFormTabButton: document.querySelector('#signFormTabButton'),
+  createPatientLinkButton: document.querySelector('#createPatientLinkButton'),
+  patientLinkModal: document.querySelector('#patientLinkModal'),
+  patientLinkFormList: document.querySelector('#patientLinkFormList'),
+  patientLinkLocationSelect: document.querySelector('#patientLinkLocationSelect'),
+  copyPatientLinkButton: document.querySelector('#copyPatientLinkButton'),
+  patientLinkCloseButtons: Array.from(document.querySelectorAll('[data-patient-link-close]')),
   announcer: document.querySelector('#announcer'),
   locationSelect: document.querySelector('#locationSelect'),
   languageSelect: document.querySelector('#languageSelect'),
@@ -222,6 +245,7 @@ async function bootstrap() {
   state.theme = readTheme();
   state.language = readLanguage();
   document.documentElement.classList.toggle('is-preview-shell', IS_PREVIEW_SHELL);
+  document.documentElement.classList.toggle('is-patient-link', IS_PATIENT_LINK);
   applyTheme();
   bindEvents();
   applyLanguage();
@@ -309,6 +333,24 @@ function bindEvents() {
         event.preventDefault();
       }
     });
+  });
+
+  el.createPatientLinkButton?.addEventListener('click', openPatientLinkModal);
+  el.patientLinkCloseButtons.forEach(button => {
+    button.addEventListener('click', closePatientLinkModal);
+  });
+  el.patientLinkFormList?.addEventListener('change', event => {
+    const input = event.target instanceof Element ? event.target.closest('[data-patient-form-id]') : null;
+    if (input instanceof HTMLInputElement) {
+      updatePatientLinkCopyState();
+    }
+  });
+  el.patientLinkLocationSelect?.addEventListener('change', updatePatientLinkCopyState);
+  el.copyPatientLinkButton?.addEventListener('click', copyPatientLink);
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && el.patientLinkModal && !el.patientLinkModal.classList.contains('is-hidden')) {
+      closePatientLinkModal();
+    }
   });
 
   el.detailBody?.addEventListener('click', event => {
@@ -453,6 +495,9 @@ async function loadLocationsData() {
     const enabled = locations.filter(loc => loc && loc.enabled !== false && loc.slug);
 
     if (!enabled.length) {
+      if (IS_PATIENT_LINK) {
+        state.patientLinkError = 'location';
+      }
       return;
     }
 
@@ -461,6 +506,19 @@ async function loadLocationsData() {
     const requested = PAGE_PARAMS.get('location') || '';
     const stored = read(STORAGE.location);
     const matchSlug = slug => enabled.some(loc => loc.slug === slug);
+
+    if (IS_PATIENT_LINK) {
+      if (!matchSlug(PATIENT_LOCATION)) {
+        state.patientLinkError = 'location';
+        populateLocationSelect();
+        return;
+      }
+
+      state.location = PATIENT_LOCATION;
+      applyLocationFormUrls();
+      populateLocationSelect();
+      return;
+    }
 
     state.location = matchSlug(requested)
       ? requested
@@ -475,6 +533,9 @@ async function loadLocationsData() {
   } catch (error) {
     console.error('Failed to load locations data.', error);
     state.locationLoadFailed = true;
+    if (IS_PATIENT_LINK) {
+      state.patientLinkError = 'location';
+    }
   }
 }
 
@@ -521,6 +582,7 @@ function populateLocationSelect() {
 }
 
 function setLocation(slug) {
+  if (IS_PATIENT_LINK) return;
   if (!slug || slug === state.location) return;
   if (!state.locations.some(loc => loc.slug === slug)) return;
 
@@ -658,6 +720,27 @@ function setActionButtonState(button, href) {
 }
 
 function restoreActiveForm() {
+  if (IS_PATIENT_LINK) {
+    if (state.patientLinkError) {
+      state.activeFormId = '';
+      state.patientFormIds = [];
+      return;
+    }
+
+    const formIds = PATIENT_FORM_IDS.filter(id => state.forms.some(form => form.id === id));
+    if (formIds.length < 1 || formIds.length > PATIENT_FORM_LIMIT) {
+      state.patientLinkError = 'forms';
+      state.activeFormId = '';
+      state.patientFormIds = [];
+      return;
+    }
+
+    state.patientFormIds = formIds;
+    state.activeFormId = formIds[0] || '';
+    state.activeTab = 'form';
+    return;
+  }
+
   if (!state.forms.length) return;
   const requested = PAGE_PARAMS.get('form') || '';
   const stored = read(STORAGE.activeForm);
@@ -680,6 +763,7 @@ function render() {
   renderMain();
   renderTabs();
   renderDetail();
+  refreshPatientLinkModal();
 }
 
 function renderLanguageChange() {
@@ -692,6 +776,7 @@ function renderLanguageChange() {
   renderMain();
   renderTabs();
   renderDetail();
+  refreshPatientLinkModal();
 }
 
 function renderSidebar() {
@@ -1441,6 +1526,22 @@ function applyEmptyStateCopy(copy) {
 }
 
 function getEmptyCopy() {
+  if (state.patientLinkError === 'forms') {
+    return {
+      eyebrow: text('emptyEyebrow'),
+      title: text('patientLinkInvalidForms'),
+      body: text('patientLinkInvalidForms'),
+    };
+  }
+
+  if (state.patientLinkError === 'location') {
+    return {
+      eyebrow: text('emptyEyebrow'),
+      title: text('patientLinkInvalidLocation'),
+      body: text('patientLinkInvalidLocation'),
+    };
+  }
+
   if (state.emptyMode === 'http-required') {
     return {
       eyebrow: text('httpRequiredTitle'),
@@ -1475,13 +1576,175 @@ function getMainEmptyCopy() {
   return getEmptyCopy();
 }
 
+function openPatientLinkModal() {
+  if (IS_PATIENT_LINK || !el.patientLinkModal) return;
+
+  const activeForm = getActiveVisibleForm();
+  state.patientLinkSelectedForms = activeForm ? [activeForm.id] : [];
+  renderPatientLinkModal();
+  el.patientLinkModal.classList.remove('is-hidden');
+  el.patientLinkModal.removeAttribute('aria-hidden');
+
+  const firstCheckbox = el.patientLinkFormList?.querySelector('[data-patient-form-id]');
+  if (firstCheckbox instanceof HTMLInputElement) {
+    firstCheckbox.focus();
+  } else {
+    el.patientLinkLocationSelect?.focus();
+  }
+}
+
+function closePatientLinkModal() {
+  if (!el.patientLinkModal) return;
+  el.patientLinkModal.classList.add('is-hidden');
+  el.patientLinkModal.setAttribute('aria-hidden', 'true');
+  el.createPatientLinkButton?.focus();
+}
+
+function refreshPatientLinkModal() {
+  if (!el.patientLinkModal || el.patientLinkModal.classList.contains('is-hidden')) return;
+  renderPatientLinkModal();
+}
+
+function renderPatientLinkModal() {
+  renderPatientLinkFormOptions();
+  renderPatientLinkLocationOptions();
+  updatePatientLinkCopyState();
+}
+
+function renderPatientLinkFormOptions() {
+  if (!el.patientLinkFormList) return;
+
+  const forms = sortForms(state.forms, state.language);
+  const availableIds = new Set(forms.map(form => form.id));
+  state.patientLinkSelectedForms = state.patientLinkSelectedForms
+    .filter(id => availableIds.has(id))
+    .slice(0, PATIENT_FORM_LIMIT);
+
+  if (!forms.length) {
+    el.patientLinkFormList.innerHTML = `<p class="patient-link-form-list__empty">${esc(text('noDataTitle'))}</p>`;
+    return;
+  }
+
+  const selected = new Set(state.patientLinkSelectedForms);
+  el.patientLinkFormList.innerHTML = forms
+    .map(form => {
+      const checked = selected.has(form.id) ? ' checked' : '';
+      return `
+        <label class="patient-link-option">
+          <input type="checkbox" value="${esc(form.id)}" data-patient-form-id="${esc(form.id)}"${checked}>
+          <span>${esc(displayName(form, state.language))}</span>
+        </label>
+      `;
+    })
+    .join('');
+}
+
+function renderPatientLinkLocationOptions() {
+  if (!el.patientLinkLocationSelect) return;
+
+  const current = el.patientLinkLocationSelect.value || state.location;
+  el.patientLinkLocationSelect.innerHTML = state.locations
+    .map(loc => {
+      const label = pickLocalized(loc.label, state.language) || loc.slug;
+      return `<option value="${esc(loc.slug)}">${esc(label)}</option>`;
+    })
+    .join('');
+
+  el.patientLinkLocationSelect.value = state.locations.some(loc => loc.slug === current)
+    ? current
+    : state.location;
+}
+
+function updatePatientLinkCopyState() {
+  const selected = getSelectedPatientLinkFormIds();
+  const atLimit = selected.length >= PATIENT_FORM_LIMIT;
+  const validLocation = isKnownLocation(el.patientLinkLocationSelect?.value || '');
+
+  el.patientLinkFormList?.querySelectorAll('[data-patient-form-id]').forEach(input => {
+    if (!(input instanceof HTMLInputElement)) return;
+    input.disabled = !input.checked && atLimit;
+  });
+
+  if (el.copyPatientLinkButton) {
+    el.copyPatientLinkButton.disabled =
+      selected.length < 1 || selected.length > PATIENT_FORM_LIMIT || !validLocation;
+  }
+}
+
+function getSelectedPatientLinkFormIds() {
+  const selected = Array.from(el.patientLinkFormList?.querySelectorAll('[data-patient-form-id]:checked') || [])
+    .filter(input => input instanceof HTMLInputElement)
+    .map(input => input.value)
+    .filter(Boolean);
+  state.patientLinkSelectedForms = selected;
+  return selected;
+}
+
+async function copyPatientLink() {
+  const formIds = getSelectedPatientLinkFormIds();
+  const locationSlug = el.patientLinkLocationSelect?.value || '';
+  if (formIds.length < 1 || formIds.length > PATIENT_FORM_LIMIT || !isKnownLocation(locationSlug)) {
+    updatePatientLinkCopyState();
+    return;
+  }
+
+  try {
+    await writeClipboardText(buildPatientLinkUrl(formIds, locationSlug));
+    closePatientLinkModal();
+    announce(text('copyPatientLinkCopied'));
+  } catch {
+    announce(text('copyPatientLinkFailed'));
+  }
+}
+
+function buildPatientLinkUrl(formIds, locationSlug) {
+  const baseUrl = `${window.location.origin}${window.location.pathname}`;
+  const params = [
+    'patient=1',
+    `forms=${formIds.map(encodeURIComponent).join(',')}`,
+    `location=${encodeURIComponent(locationSlug)}`,
+    `lang=${encodeURIComponent(state.language)}`,
+  ];
+  return `${baseUrl}?${params.join('&')}`;
+}
+
+async function writeClipboardText(value) {
+  if (navigator.clipboard?.writeText && window.isSecureContext) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+
+  const textarea = document.createElement('textarea');
+  textarea.value = value;
+  textarea.setAttribute('readonly', '');
+  textarea.style.position = 'fixed';
+  textarea.style.top = '-9999px';
+  document.body.append(textarea);
+  textarea.focus();
+  textarea.select();
+
+  try {
+    if (!document.execCommand('copy')) {
+      throw new Error('Copy command failed');
+    }
+  } finally {
+    textarea.remove();
+  }
+}
+
+function isKnownLocation(slug) {
+  return state.locations.some(loc => loc.slug === slug);
+}
+
 function setActiveForm(formId) {
   if (!formId || formId === state.activeFormId) return;
   pauseYouTubeIfLeaving('form');
   const previousFormId = state.activeFormId;
   state.activeFormId = formId;
   state.activeTab = 'form';
-  save(STORAGE.activeForm, formId);
+  if (!IS_PATIENT_LINK) {
+    save(STORAGE.activeForm, formId);
+  }
 
   const form = getActiveVisibleForm();
   const externalUrl = form?.externalUrl?.trim();
@@ -1559,6 +1822,13 @@ function getActiveVisibleForm() {
 }
 
 function getVisibleForms() {
+  if (IS_PATIENT_LINK) {
+    if (state.patientLinkError) return [];
+    return state.patientFormIds
+      .map(id => state.forms.find(form => form.id === id))
+      .filter(Boolean);
+  }
+
   const cacheKey = state.language;
   if (!sortedFormsCache.has(cacheKey)) {
     sortedFormsCache.set(cacheKey, sortForms(state.forms, state.language));
@@ -1568,6 +1838,11 @@ function getVisibleForms() {
 
 function syncActiveFormToVisibleResults() {
   const visible = getVisibleForms();
+
+  if (IS_PATIENT_LINK && state.patientLinkError) {
+    state.activeFormId = '';
+    return;
+  }
 
   if (!state.forms.length) {
     state.activeFormId = '';
@@ -1598,6 +1873,20 @@ function cssEscape(value) {
   }
 
   return String(value).replace(/["\\]/g, '\\$&');
+}
+
+function parsePatientFormIds(value) {
+  const ids = [];
+  const seen = new Set();
+
+  for (const raw of String(value || '').split(',')) {
+    const id = raw.trim();
+    if (!id || seen.has(id)) continue;
+    ids.push(id);
+    seen.add(id);
+  }
+
+  return ids;
 }
 
 function getCollator(language) {
@@ -1794,14 +2083,14 @@ function onStorageChange(event) {
     renderThemeButtons();
   }
 
-  if (event.key === STORAGE.activeForm) {
+  if (!IS_PATIENT_LINK && event.key === STORAGE.activeForm) {
     const next = event.newValue || '';
     if (next && next !== state.activeFormId && state.forms.some(form => form.id === next)) {
       setActiveForm(next);
     }
   }
 
-  if (event.key === STORAGE.location) {
+  if (!IS_PATIENT_LINK && event.key === STORAGE.location) {
     const next = event.newValue || '';
     if (next && next !== state.location) {
       setLocation(next);
