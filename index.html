@@ -60,7 +60,7 @@
 
         <footer class="sidebar__footer">
           <div class="sidebar__footer-stack">
-            <div class="control-group">
+            <div class="control-group location-picker">
               <label class="control-label" for="locationSelect" data-i18n="locationLabel">Location</label>
               <div class="select-shell">
                 <select id="locationSelect" class="language-select" aria-label="Location" aria-describedby="locationSelectError">
@@ -149,6 +149,13 @@
             </div>
 
             <div class="detail-shell__primary">
+              <button
+                id="createPatientLinkButton"
+                class="action-button action-button--secondary"
+                type="button"
+              >
+                <span class="action-button__label" data-i18n="copyPatientLink">Create Patient Link</span>
+              </button>
               <a
                 id="signFormTabButton"
                 class="action-button action-button--sign"
@@ -165,6 +172,36 @@
         </div>
       </section>
     </main>
+
+    <div
+      id="patientLinkModal"
+      class="patient-link-modal is-hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="patientLinkModalTitle"
+      aria-hidden="true"
+    >
+      <div class="patient-link-modal__backdrop" data-patient-link-close></div>
+      <section class="patient-link-modal__panel">
+        <header class="patient-link-modal__header">
+          <h2 id="patientLinkModalTitle" data-i18n="copyPatientLink">Create Patient Link</h2>
+          <button type="button" class="patient-link-modal__close" data-patient-link-close aria-label="Close">
+            Close
+          </button>
+        </header>
+        <div class="patient-link-modal__body">
+          <div id="patientLinkFormList" class="patient-link-form-list"></div>
+          <label class="control-label" for="patientLinkLocationSelect" data-i18n="locationLabel">Location</label>
+          <select id="patientLinkLocationSelect" class="language-select"></select>
+        </div>
+        <footer class="patient-link-modal__footer">
+          <button type="button" class="action-button" data-patient-link-close>Cancel</button>
+          <button type="button" id="copyPatientLinkButton" class="action-button action-button--sign" disabled>
+            <span class="action-button__label">Copy Link</span>
+          </button>
+        </footer>
+      </section>
+    </div>
 
     <div id="announcer" class="sr-only" aria-live="polite"></div>
     <!-- PDF.js -->
