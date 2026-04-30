@@ -512,7 +512,7 @@
     },
     {
       "id": "aftercare-consent",
-      "sheetFormName": "Aftercare Consent",
+      "sheetFormName": "Aftercare Consent - Informed Consent",
       "accessUrl": "",
       "hasDocxPreview": true,
       "docPreviewTitle": {
@@ -521,12 +521,12 @@
       },
       "translations": {
         "en": {
-          "formName": "Aftercare Consent",
+          "formName": "Aftercare Consent - Informed Consent",
           "description": "",
           "notes": ""
         },
         "ko": {
-          "formName": "사후관리 동의서",
+          "formName": "사후관리 동의서 - 고지 동의서",
           "description": "",
           "notes": ""
         }
@@ -582,7 +582,7 @@
           "notes": ""
         },
         "ko": {
-          "formName": "Denture Consent",
+          "formName": "의치 동의서",
           "description": "",
           "notes": ""
         }
@@ -634,7 +634,7 @@
           "notes": ""
         },
         "ko": {
-          "formName": "Orthodontic Consent",
+          "formName": "교정 동의서",
           "description": "",
           "notes": ""
         }
@@ -686,7 +686,7 @@
           "notes": ""
         },
         "ko": {
-          "formName": "Sedation Consent",
+          "formName": "진정 동의서",
           "description": "",
           "notes": ""
         }
