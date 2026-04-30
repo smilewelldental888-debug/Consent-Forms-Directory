@@ -8,17 +8,26 @@ const IS_PATIENT_LINK = PAGE_PARAMS.get('patient') === '1';
 const PATIENT_FORM_LIMIT = 7;
 const PATIENT_FORM_IDS = parsePatientFormIds(PAGE_PARAMS.get('forms') || '');
 const PATIENT_LOCATION = PAGE_PARAMS.get('location') || '';
-const PATIENT_SIGN_BUNDLE_FORM_IDS = [
-  'hipaa',
-  'financial-agreement',
-  'aftercare-consent',
+const PATIENT_SIGN_BUNDLES = [
+  {
+    formIds: ['hipaa', 'financial-agreement', 'aftercare-consent'],
+    urls: {
+      coquitlam: 'https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=198275',
+      langley: 'https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=98922&RKID=35097&WSDID=198350',
+      'north-vancouver': 'https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=64790&RKID=41960&WSDID=198353',
+      surrey: 'https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=198356',
+    },
+  },
+  {
+    formIds: ['implant-consent', 'bone-graft-consent'],
+    urls: {
+      coquitlam: 'https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=198362',
+      langley: 'https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=98922&RKID=35097&WSDID=198365',
+      'north-vancouver': 'https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=64790&RKID=41960&WSDID=198371',
+      surrey: 'https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=198368',
+    },
+  },
 ];
-const PATIENT_SIGN_BUNDLE_URLS = {
-  coquitlam: 'https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=198275',
-  langley: 'https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=98922&RKID=35097&WSDID=198350',
-  'north-vancouver': 'https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=64790&RKID=41960&WSDID=198353',
-  surrey: 'https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=198356',
-};
 const MEDIA_LOAD_TIMEOUT_MS = 8000;
 const STORAGE = {
   language: 'opendental-directory-language',
@@ -609,13 +618,12 @@ function setLocation(slug) {
 function getPatientBundleSignUrl() {
   if (!IS_PATIENT_LINK || state.patientLinkError) return '';
   const activeIds = Array.isArray(state.patientFormIds) ? state.patientFormIds : [];
-  if (activeIds.length !== PATIENT_SIGN_BUNDLE_FORM_IDS.length) return '';
-
   const selectedIds = new Set(activeIds);
-  const isBundle = PATIENT_SIGN_BUNDLE_FORM_IDS.every(id => selectedIds.has(id));
-  if (!isBundle) return '';
+  const bundle = PATIENT_SIGN_BUNDLES.find(({formIds}) =>
+    activeIds.length === formIds.length && formIds.every(id => selectedIds.has(id))
+  );
 
-  return PATIENT_SIGN_BUNDLE_URLS[state.location] || '';
+  return bundle?.urls[state.location] || '';
 }
 
 function getFormSignUrl(form) {
