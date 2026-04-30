@@ -8,6 +8,17 @@ const IS_PATIENT_LINK = PAGE_PARAMS.get('patient') === '1';
 const PATIENT_FORM_LIMIT = 7;
 const PATIENT_FORM_IDS = parsePatientFormIds(PAGE_PARAMS.get('forms') || '');
 const PATIENT_LOCATION = PAGE_PARAMS.get('location') || '';
+const PATIENT_SIGN_BUNDLE_FORM_IDS = [
+  'hipaa',
+  'financial-agreement',
+  'aftercare-consent',
+];
+const PATIENT_SIGN_BUNDLE_URLS = {
+  coquitlam: 'https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=198275',
+  langley: 'https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=98922&RKID=35097&WSDID=198350',
+  'north-vancouver': 'https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=64790&RKID=41960&WSDID=198353',
+  surrey: 'https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=99018&RKID=33250&WSDID=198356',
+};
 const MEDIA_LOAD_TIMEOUT_MS = 8000;
 const STORAGE = {
   language: 'opendental-directory-language',
@@ -113,7 +124,7 @@ const I18N = {
   },
   ko: {
     sidebarEyebrow: '양식',
-    sidebarTitle: 'Form library',
+    sidebarTitle: '동의서 라이브러리',
     sidebarSectionLabel: '추천 동의서',
     navDashboard: '대시보드',
     navPractice: '진료',
@@ -595,8 +606,22 @@ function setLocation(slug) {
   announce(pickLocalized(loc?.label, state.language) || slug);
 }
 
+function getPatientBundleSignUrl() {
+  if (!IS_PATIENT_LINK || state.patientLinkError) return '';
+  const activeIds = Array.isArray(state.patientFormIds) ? state.patientFormIds : [];
+  if (activeIds.length !== PATIENT_SIGN_BUNDLE_FORM_IDS.length) return '';
+
+  const selectedIds = new Set(activeIds);
+  const isBundle = PATIENT_SIGN_BUNDLE_FORM_IDS.every(id => selectedIds.has(id));
+  if (!isBundle) return '';
+
+  return PATIENT_SIGN_BUNDLE_URLS[state.location] || '';
+}
+
 function getFormSignUrl(form) {
   if (!form) return '';
+  const patientBundleUrl = getPatientBundleSignUrl();
+  if (patientBundleUrl) return patientBundleUrl;
   const locationUrl = state.locationFormUrls[form.id];
   if (typeof locationUrl === 'string') return locationUrl;
   return form.formUrl || '';

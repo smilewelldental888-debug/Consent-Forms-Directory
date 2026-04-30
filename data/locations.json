@@ -22,7 +22,7 @@
         "implant-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=190283",
         "oral-surgery-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=190289",
         "rct-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=190292",
-        "aftercare-consent": "",
+        "aftercare-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=198173",
         "denture-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=197819&AFNAB=N",
         "orthodontic-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=197822&AFNAB=N",
         "sedation-consent": "https://patientviewer.com/WebFormsGWT/GWT/WebForms/WebForms.html?DOID=129099&RKID=45518&WSDID=197825&AFNAB=N"
