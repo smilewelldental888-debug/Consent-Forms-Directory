@@ -33,7 +33,6 @@ const STORAGE = {
   language: 'opendental-directory-language',
   activeForm: 'opendental-directory-active-form',
   theme: 'opendental-directory-theme',
-  location: 'opendental-directory-location',
 };
 
 const THEME_COLORS = {
@@ -225,6 +224,8 @@ const state = {
   patientLinkError: '',
   patientFormIds: [],
   patientLinkSelectedForms: [],
+  locationGateActive: false,
+  locationGateLoading: false,
 };
 
 const el = {
@@ -234,6 +235,8 @@ const el = {
   detailBody: document.querySelector('#detailBody'),
   signFormTabButton: document.querySelector('#signFormTabButton'),
   createPatientLinkButton: document.querySelector('#createPatientLinkButton'),
+  locationGate: document.querySelector('#locationGate'),
+  locationGateButtons: Array.from(document.querySelectorAll('[data-location-gate-value]')),
   patientLinkModal: document.querySelector('#patientLinkModal'),
   patientLinkFormList: document.querySelector('#patientLinkFormList'),
   patientLinkLocationSelect: document.querySelector('#patientLinkLocationSelect'),
@@ -262,20 +265,101 @@ document.addEventListener('DOMContentLoaded', bootstrap);
 window.addEventListener('storage', onStorageChange);
 
 async function bootstrap() {
+  await bootstrapSession();
+}
+
+async function bootstrapSession() {
+  initializeSessionState();
+  bindEvents();
+  await loadLocationsData();
+  if (shouldHoldDashboardForLocationGate()) {
+    showLocationGate();
+    return;
+  }
+  await renderDashboardSession();
+}
+
+function initializeSessionState() {
   state.theme = readTheme();
   state.language = readLanguage();
   document.documentElement.classList.toggle('is-preview-shell', IS_PREVIEW_SHELL);
   document.documentElement.classList.toggle('is-patient-link', IS_PATIENT_LINK);
   applyTheme();
-  bindEvents();
   applyLanguage();
-  await loadLocationsData();
+}
+
+function shouldHoldDashboardForLocationGate() {
+  return state.locationGateActive;
+}
+
+async function renderDashboardSession() {
   await loadSiteData();
   restoreActiveForm();
   render();
+  revealDashboardShell();
+}
+
+function revealDashboardShell() {
+  hideLocationGate();
+  document.documentElement.classList.remove('location-gate-pending');
+  document.documentElement.classList.remove('is-location-gated');
+}
+
+function showLocationGate() {
+  state.locationGateActive = true;
+  document.documentElement.classList.remove('location-gate-pending');
+  document.documentElement.classList.add('is-location-gated');
+  el.locationGate?.classList.remove('is-hidden');
+  el.locationGate?.removeAttribute('aria-hidden');
+  focusLocationGate();
+}
+
+function hideLocationGate() {
+  state.locationGateActive = false;
+  el.locationGate?.classList.add('is-hidden');
+  el.locationGate?.setAttribute('aria-hidden', 'true');
+}
+
+function focusLocationGate() {
+  const firstButton = el.locationGateButtons.find(button => button instanceof HTMLButtonElement);
+  firstButton?.focus();
+}
+
+function bindLocationGateEvents() {
+  el.locationGateButtons.forEach(button => {
+    button.addEventListener('click', handleLocationGateButtonClick);
+  });
+}
+
+function handleLocationGateButtonClick(event) {
+  const button = event.currentTarget;
+  if (!(button instanceof HTMLElement)) return;
+  void acceptLocationGateSelection(button.dataset.locationGateValue || '');
+}
+
+async function acceptLocationGateSelection(slug) {
+  if (state.locationGateLoading || !isKnownLocation(slug)) return;
+  setLocationGateBusy(true);
+  selectLocationForSession(slug);
+  try {
+    await renderDashboardSession();
+  } finally {
+    setLocationGateBusy(false);
+  }
+}
+
+function setLocationGateBusy(isBusy) {
+  state.locationGateLoading = Boolean(isBusy);
+  el.locationGateButtons.forEach(button => {
+    if (button instanceof HTMLButtonElement) {
+      button.disabled = state.locationGateLoading;
+    }
+  });
 }
 
 function bindEvents() {
+  bindLocationGateEvents();
+
   window.addEventListener('resize', scheduleTabSliderSync, {passive: true});
 
   el.languageSelect?.addEventListener('change', () => {
@@ -497,65 +581,98 @@ async function loadSiteData() {
 }
 
 async function loadLocationsData() {
-  state.locations = [];
-  state.locationFormUrls = {};
-  state.location = '';
+  await loadLocationsDataForSession();
+}
+
+async function loadLocationsDataForSession() {
+  resetLocationStateForSession();
 
   if (window.location.protocol === 'file:') {
-    state.emptyMode = 'http-required';
+    setHttpRequiredMode();
     return;
   }
 
   try {
-    const response = await fetch(LOCATIONS_URL);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-    const payload = await response.json();
-    const locations = Array.isArray(payload?.locations) ? payload.locations : [];
-    const enabled = locations.filter(loc => loc && loc.enabled !== false && loc.slug);
-
-    if (!enabled.length) {
-      if (IS_PATIENT_LINK) {
-        state.patientLinkError = 'location';
-      }
-      return;
-    }
-
-    state.locations = enabled;
-    const defaultSlug = payload.defaultLocation || enabled[0].slug;
-    const requested = PAGE_PARAMS.get('location') || '';
-    const stored = read(STORAGE.location);
-    const matchSlug = slug => enabled.some(loc => loc.slug === slug);
-
-    if (IS_PATIENT_LINK) {
-      if (!matchSlug(PATIENT_LOCATION)) {
-        state.patientLinkError = 'location';
-        populateLocationSelect();
-        return;
-      }
-
-      state.location = PATIENT_LOCATION;
-      applyLocationFormUrls();
-      populateLocationSelect();
-      return;
-    }
-
-    state.location = matchSlug(requested)
-      ? requested
-      : matchSlug(stored)
-        ? stored
-        : matchSlug(defaultSlug)
-          ? defaultSlug
-          : enabled[0].slug;
-
-    applyLocationFormUrls();
+    const payload = await fetchLocationsPayload();
+    setEnabledLocations(payload);
+    resolveInitialLocation();
     populateLocationSelect();
-  } catch (error) {
-    console.error('Failed to load locations data.', error);
-    state.locationLoadFailed = true;
-    if (IS_PATIENT_LINK) {
-      state.patientLinkError = 'location';
-    }
+  } catch {
+    handleLocationLoadFailure();
+  }
+}
+
+function resetLocationStateForSession() {
+  state.locations = [];
+  state.locationFormUrls = {};
+  state.location = '';
+  state.locationGateActive = false;
+}
+
+function setHttpRequiredMode() {
+  state.emptyMode = 'http-required';
+}
+
+async function fetchLocationsPayload() {
+  const response = await fetch(LOCATIONS_URL);
+  if (!response.ok) throw new Error(`HTTP ${response.status}`);
+  return response.json();
+}
+
+function setEnabledLocations(payload) {
+  const locations = Array.isArray(payload?.locations) ? payload.locations : [];
+  state.locations = locations.filter(loc => loc && loc.enabled !== false && loc.slug);
+}
+
+function resolveInitialLocation() {
+  if (!state.locations.length) {
+    resolveMissingLocationData();
+    return;
+  }
+
+  if (IS_PATIENT_LINK) {
+    resolvePatientLinkLocation();
+    return;
+  }
+
+  resolveStaffLocation();
+}
+
+function resolveMissingLocationData() {
+  if (IS_PATIENT_LINK) {
+    state.patientLinkError = 'location';
+  }
+}
+
+function resolvePatientLinkLocation() {
+  if (!isKnownLocation(PATIENT_LOCATION)) {
+    state.patientLinkError = 'location';
+    return;
+  }
+
+  selectLocationForSession(PATIENT_LOCATION);
+}
+
+function resolveStaffLocation() {
+  const requested = PAGE_PARAMS.get('location') || '';
+  if (!isKnownLocation(requested)) {
+    state.locationGateActive = true;
+    return;
+  }
+
+  selectLocationForSession(requested);
+}
+
+function selectLocationForSession(slug) {
+  state.location = slug;
+  applyLocationFormUrls();
+  populateLocationSelect();
+}
+
+function handleLocationLoadFailure() {
+  state.locationLoadFailed = true;
+  if (IS_PATIENT_LINK) {
+    state.patientLinkError = 'location';
   }
 }
 
@@ -602,15 +719,21 @@ function populateLocationSelect() {
 }
 
 function setLocation(slug) {
+  setDashboardLocation(slug);
+}
+
+function setDashboardLocation(slug) {
   if (IS_PATIENT_LINK) return;
   if (!slug || slug === state.location) return;
-  if (!state.locations.some(loc => loc.slug === slug)) return;
+  if (!isKnownLocation(slug)) return;
 
-  state.location = slug;
-  save(STORAGE.location, slug);
-  applyLocationFormUrls();
+  selectLocationForSession(slug);
   renderMain();
   renderDetail();
+  announceSelectedLocation(slug);
+}
+
+function announceSelectedLocation(slug) {
   const loc = state.locations.find(l => l.slug === slug);
   announce(pickLocalized(loc?.label, state.language) || slug);
 }
@@ -2104,30 +2227,33 @@ function onSystemThemeChange(event) {
 }
 
 function onStorageChange(event) {
-  if (event.key === STORAGE.language && ['en', 'ko'].includes(event.newValue || '')) {
-    state.language = event.newValue || 'en';
-    applyLanguage();
-    renderLanguageChange();
-  }
+  handleStorageChange(event);
+}
 
-  if (event.key === STORAGE.theme) {
-    state.theme = readTheme();
-    applyTheme();
-    renderThemeButtons();
-  }
+function handleStorageChange(event) {
+  handleLanguageStorageChange(event);
+  handleThemeStorageChange(event);
+  handleActiveFormStorageChange(event);
+}
 
-  if (!IS_PATIENT_LINK && event.key === STORAGE.activeForm) {
-    const next = event.newValue || '';
-    if (next && next !== state.activeFormId && state.forms.some(form => form.id === next)) {
-      setActiveForm(next);
-    }
-  }
+function handleLanguageStorageChange(event) {
+  if (event.key !== STORAGE.language || !['en', 'ko'].includes(event.newValue || '')) return;
+  state.language = event.newValue || 'en';
+  applyLanguage();
+  renderLanguageChange();
+}
 
-  if (!IS_PATIENT_LINK && event.key === STORAGE.location) {
-    const next = event.newValue || '';
-    if (next && next !== state.location) {
-      setLocation(next);
-      if (el.locationSelect) el.locationSelect.value = state.location;
-    }
+function handleThemeStorageChange(event) {
+  if (event.key !== STORAGE.theme) return;
+  state.theme = readTheme();
+  applyTheme();
+  renderThemeButtons();
+}
+
+function handleActiveFormStorageChange(event) {
+  if (IS_PATIENT_LINK || event.key !== STORAGE.activeForm) return;
+  const next = event.newValue || '';
+  if (next && next !== state.activeFormId && state.forms.some(form => form.id === next)) {
+    setActiveForm(next);
   }
 }

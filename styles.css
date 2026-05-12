@@ -1193,6 +1193,89 @@ a {
   outline: none;
 }
 
+.location-gate {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: none;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at 18% 18%, rgba(71, 214, 255, 0.16), transparent 34%),
+    linear-gradient(145deg, rgba(14, 20, 27, 0.96), rgba(27, 36, 45, 0.98));
+}
+
+html.is-location-gated .location-gate {
+  display: grid;
+}
+
+html.location-gate-pending .app-shell,
+html.is-location-gated .app-shell {
+  display: none;
+}
+
+.location-gate__panel {
+  width: min(520px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 22px;
+  padding: clamp(28px, 7vw, 48px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  background: var(--surface-bg);
+  box-shadow: var(--shadow-panel);
+  text-align: center;
+}
+
+.location-gate__logo {
+  width: min(180px, 52vw);
+  height: auto;
+}
+
+.location-gate__instruction {
+  margin: 0;
+  color: var(--text-strong);
+  font-size: var(--type-title-md);
+  font-weight: 700;
+  line-height: var(--leading-title);
+}
+
+.location-gate__actions {
+  width: 100%;
+  display: grid;
+  gap: 12px;
+}
+
+.location-gate__button {
+  min-height: 54px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+  color: var(--button-text);
+  box-shadow: var(--shadow-button);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.location-gate__button:hover,
+.location-gate__button:focus-visible {
+  border-color: var(--accent-soft-strong);
+  box-shadow: var(--shadow-panel);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.location-gate__button:disabled {
+  opacity: 0.54;
+  cursor: wait;
+  transform: none;
+}
+
 .patient-link-modal {
   position: fixed;
   inset: 0;
@@ -1236,8 +1319,8 @@ a {
 .patient-link-modal__header h2 {
   margin: 0;
   color: var(--text-strong);
-  font-size: var(--type-heading-md);
-  line-height: var(--leading-tight);
+  font-size: var(--type-title-md);
+  line-height: var(--leading-title);
 }
 
 .patient-link-modal__close {

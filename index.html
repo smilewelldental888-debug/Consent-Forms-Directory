@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="location-gate-pending">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -36,6 +36,30 @@
     <link rel="icon" href="./assets/favicon.ico" />
   </head>
   <body>
+    <div
+      id="locationGate"
+      class="location-gate is-hidden"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Select clinic location"
+    >
+      <section class="location-gate__panel">
+        <img
+          class="location-gate__logo"
+          src="./assets/smilewell-logo-stacked-en.png"
+          alt="Smile Well Dental logo"
+          decoding="async"
+        />
+        <p class="location-gate__instruction">Select your clinic location to continue.</p>
+        <div class="location-gate__actions">
+          <button type="button" class="location-gate__button" data-location-gate-value="coquitlam">Coquitlam</button>
+          <button type="button" class="location-gate__button" data-location-gate-value="langley">Langley</button>
+          <button type="button" class="location-gate__button" data-location-gate-value="north-vancouver">North Vancouver</button>
+          <button type="button" class="location-gate__button" data-location-gate-value="surrey">Surrey</button>
+        </div>
+      </section>
+    </div>
+
     <main class="app-shell">
       <aside class="sidebar" aria-label="Consent form library">
         <header class="sidebar__header">
