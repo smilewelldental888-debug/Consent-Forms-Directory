@@ -536,7 +536,7 @@ function pauseYouTubeIfLeaving(nextTab = '') {
         func: 'pauseVideo',
         args: [],
       }),
-      '*',
+      'https://www.youtube.com',
     );
   } catch {
     // Ignore postMessage failures from cross-origin embeds.
@@ -571,8 +571,8 @@ async function loadSiteData() {
       state.forms = forms;
       state.emptyMode = 'default';
     }
-  } catch (error) {
-    console.error('Failed to load site data.', error);
+  } catch {
+    console.error('Failed to load data. Check network or data file.');
   }
 
   if (!state.forms.length) {
