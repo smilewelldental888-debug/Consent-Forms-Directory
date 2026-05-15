@@ -23,7 +23,32 @@
           "notes": ""
         }
       },
-      "videos": [],
+      "videos": [
+        {
+          "platform": "youtube",
+          "url": "https://youtu.be/jKczNAhaEzw",
+          "title": "Pre-Treatment Guide | Smile Well",
+          "language": "en"
+        },
+        {
+          "platform": "drive",
+          "url": "https://drive.google.com/file/d/1-n7PCQrkqImzYsCKzLV75kU-fC64ooV0/view?usp=sharing",
+          "title": "Pre-Treatment Guide | Smile Well",
+          "language": "en"
+        },
+        {
+          "platform": "youtube",
+          "url": "https://youtu.be/BxIX3dzCm7Y",
+          "title": "치료 전 안내 | Smile Well",
+          "language": "ko"
+        },
+        {
+          "platform": "drive",
+          "url": "https://drive.google.com/file/d/1PamQrarGIEQRqzbGYIuJ4DeeQyXZZ6xT/view?usp=sharing",
+          "title": "치료 전 안내 | Smile Well",
+          "language": "ko"
+        }
+      ],
       "googleViewerFileId": {
         "en": "19n-ftp2WErnUfhhJ0tAHA6qPiUBKI4n9",
         "ko": "14ti6fIO0mJaQmDYQ-Piza1Yb-ut7-_YD"
@@ -54,7 +79,32 @@
           "notes": ""
         }
       },
-      "videos": [],
+      "videos": [
+        {
+          "platform": "youtube",
+          "url": "https://youtu.be/jKczNAhaEzw",
+          "title": "Pre-Treatment Guide | Smile Well",
+          "language": "en"
+        },
+        {
+          "platform": "drive",
+          "url": "https://drive.google.com/file/d/1-n7PCQrkqImzYsCKzLV75kU-fC64ooV0/view?usp=sharing",
+          "title": "Pre-Treatment Guide | Smile Well",
+          "language": "en"
+        },
+        {
+          "platform": "youtube",
+          "url": "https://youtu.be/BxIX3dzCm7Y",
+          "title": "치료 전 안내 | Smile Well",
+          "language": "ko"
+        },
+        {
+          "platform": "drive",
+          "url": "https://drive.google.com/file/d/1PamQrarGIEQRqzbGYIuJ4DeeQyXZZ6xT/view?usp=sharing",
+          "title": "치료 전 안내 | Smile Well",
+          "language": "ko"
+        }
+      ],
       "googleViewerFileId": {
         "en": "12AChIdg1o8T8Xh5ev1emECN193tdzKjp",
         "ko": "1NbtRJ9qIAl0WiJiTc5cXEavbRz-AORky"
@@ -97,6 +147,18 @@
           "url": "https://drive.google.com/file/d/1qdz4r5CSDeIfcQOtry7vVW3s1kJMYLwl/view?usp=drivesdk",
           "title": "Resin Filling Guide | Smile Well",
           "language": "en"
+        },
+        {
+          "platform": "youtube",
+          "url": "https://youtu.be/PkkmGrVnGFw",
+          "title": "복합 레진 충전 안내 | Smile Well",
+          "language": "ko"
+        },
+        {
+          "platform": "drive",
+          "url": "https://drive.google.com/file/d/1BoTBLVPtJJnw02YIwKFWvdmMbV7qy_VN/view?usp=sharing",
+          "title": "복합 레진 충전 안내 | Smile Well",
+          "language": "ko"
         }
       ],
       "googleViewerFileId": {
@@ -430,6 +492,12 @@
           "url": "https://drive.google.com/file/d/1PaJb9pEjVh-QoLBTZl0aUMyIkWEztEgf/view?usp=drivesdk",
           "title": "Implant Guide | Smile Well",
           "language": "en"
+        },
+        {
+          "platform": "drive",
+          "url": "https://drive.google.com/file/d/1Ksogy6uvEc8YHS1JRYop7D5Pc4CONyaj/view?usp=sharing",
+          "title": "임플란트 & 뼈이식 안내 | Smile Well",
+          "language": "ko"
         }
       ],
       "googleViewerFileId": {
@@ -511,6 +579,12 @@
           "url": "https://drive.google.com/file/d/1Zavy7E4dToVzlOqNjKPyNzm0WqIQyblD/view?usp=drivesdk",
           "title": "Root Canal Guide | Smile Well",
           "language": "en"
+        },
+        {
+          "platform": "drive",
+          "url": "https://drive.google.com/file/d/1UdhBtBT_b3QoEq36l-63R_lrjmR80_0C/view?usp=sharing",
+          "title": "신경 치료 안내 | Smile Well",
+          "language": "ko"
         }
       ],
       "googleViewerFileId": {
