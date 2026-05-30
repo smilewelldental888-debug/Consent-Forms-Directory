@@ -1,0 +1,50 @@
+#staffToolsEntry {
+  display: none;
+}
+
+html:not(.location-gate-pending):not(.is-location-gated):not(.is-patient-link) #staffToolsEntry {
+  display: grid;
+}
+
+.staff-tools-entry {
+  gap: 5px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: linear-gradient(135deg, var(--accent-soft), var(--surface-bg));
+  color: var(--text-strong);
+  text-decoration: none;
+  box-shadow: var(--shadow-card);
+  transition:
+    border-color var(--transition-fast),
+    box-shadow var(--transition-fast),
+    transform var(--transition-fast);
+}
+
+.staff-tools-entry:hover,
+.staff-tools-entry:focus-visible {
+  border-color: var(--accent-soft-strong);
+  box-shadow: var(--shadow-panel);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.staff-tools-entry:focus-visible {
+  box-shadow: var(--focus-ring), var(--shadow-panel);
+}
+
+.staff-tools-entry__eyebrow {
+  color: var(--text-muted);
+  font-size: var(--type-label);
+  font-weight: 700;
+  letter-spacing: var(--tracking-label);
+  line-height: var(--leading-ui);
+  text-transform: uppercase;
+}
+
+.staff-tools-entry__label {
+  color: var(--text-strong);
+  font-size: var(--type-body-md);
+  font-weight: 800;
+  line-height: var(--leading-ui);
+}

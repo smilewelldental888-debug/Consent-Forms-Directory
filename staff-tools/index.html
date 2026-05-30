@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <meta
+      name="description"
+      content="Smile Well staff launchpad for AI tools, SOP videos, feedback forms, websites, and social media."
+    />
+    <meta name="theme-color" content="#ecfeff" />
+    <title>Staff Tools | Smile Well Dental Group</title>
+    <link
+      rel="preload"
+      href="../assets/fonts/Manrope-400.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="../assets/fonts/Manrope-700.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link
+      rel="preload"
+      href="../assets/fonts/CormorantGaramond-600.woff2"
+      as="font"
+      type="font/woff2"
+      crossorigin
+    />
+    <link rel="stylesheet" href="../assets/fonts/fonts.css" />
+    <link rel="stylesheet" href="./staff-tools.css" />
+    <link rel="stylesheet" href="./staff-tools-compact.css" />
+    <link rel="icon" href="../assets/favicon.ico" />
+  </head>
+  <body>
+    <header class="staff-header">
+      <a class="staff-header__brand" href="../" aria-label="Back to Smile Well Consent Forms">
+        <img
+          class="staff-header__logo"
+          src="../assets/smilewell-logo-horizontal-en.png"
+          alt="Smile Well Dental"
+          decoding="async"
+        />
+      </a>
+      <nav class="staff-header__nav" aria-label="Staff tools navigation">
+        <a href="../" class="staff-header__link">Back to Consent Forms</a>
+        <a href="#staff-search" class="staff-header__link">Search</a>
+        <a
+          href="https://docs.google.com/forms/d/e/1FAIpQLSd1yPpjbJrKsVc9fXvOcOuEmlb4mcUrsbC1_m_Gh0wrtOsADw/viewform?usp=dialog"
+          class="staff-header__link"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Feedback ↗
+        </a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="staff-hero" aria-labelledby="staffToolsTitle">
+        <div class="staff-hero__content">
+          <p class="staff-hero__eyebrow">Smile Well Dental Group</p>
+          <h1 id="staffToolsTitle">Staff Tools</h1>
+          <p class="staff-hero__subtitle">
+            Quick access to Smile Well tools, AI assistants, SOP videos, feedback forms, websites, and social pages.
+          </p>
+          <p class="staff-hero__helper">
+            External links open in a new tab so you can keep this page open as your staff launchpad.
+          </p>
+          <div class="staff-hero__actions">
+            <a class="staff-button staff-button--primary" href="#all-resources">Browse Resources</a>
+            <a
+              class="staff-button staff-button--secondary"
+              href="https://docs.google.com/forms/d/e/1FAIpQLSd1yPpjbJrKsVc9fXvOcOuEmlb4mcUrsbC1_m_Gh0wrtOsADw/viewform?usp=dialog"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Submit Feedback ↗
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <section id="staff-search" class="staff-section staff-section--search" aria-labelledby="searchTitle">
+        <div class="staff-section__header">
+          <p class="staff-section__eyebrow">Search and Filters</p>
+          <h2 id="searchTitle">Find a tool fast</h2>
+        </div>
+        <div class="staff-search" role="search">
+          <label class="staff-search__label" for="toolSearch">Search tools</label>
+          <input
+            id="toolSearch"
+            class="staff-search__input"
+            type="search"
+            placeholder="Search tools, videos, websites..."
+            autocomplete="off"
+          />
+        </div>
+        <nav id="filterChips" class="staff-filter" aria-label="Tool filters"></nav>
+        <nav class="staff-jump-nav" aria-label="Staff resource sections">
+          <a href="#section-ai-tools">AI Tools</a>
+          <a href="#section-youtube-playlists-video-guides">Videos</a>
+          <a href="#section-company-public-websites">Websites</a>
+          <a href="#section-social-media">Social</a>
+        </nav>
+      </section>
+
+      <section id="all-resources" class="staff-section" aria-labelledby="allToolsTitle">
+        <div class="staff-section__header">
+          <p class="staff-section__eyebrow">Directory</p>
+          <h2 id="allToolsTitle">All staff resources</h2>
+        </div>
+        <p id="emptyToolsMessage" class="staff-empty is-hidden" role="status">
+          No matching tools found. Try a different search or choose All.
+        </p>
+        <div id="toolSections" class="staff-section-list" aria-live="polite"></div>
+      </section>
+    </main>
+
+    <footer class="staff-footer">
+      <a href="../" class="staff-footer__link">← Back to Consent Forms</a>
+      <span>Staff-facing launchpad. External tools open in a new tab.</span>
+    </footer>
+
+    <script type="module" src="./staff-tools.js"></script>
+  </body>
+</html>
